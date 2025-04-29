@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
 import org.springframework.http.MediaType;
 import com.brognara.recipe_query_service.service.StreamingChatResponseParser;
 import java.util.UUID;
+import com.brognara.recipe_query_service.service.OverviewStreamingResponseParser;
 
 @RestController
 @RequestMapping("/api")
@@ -22,24 +23,28 @@ public class QueryController {
     private final PantryService pantryService;
     private final OpenAiStreamingChatService openAiStreamingChatService;
     private final StreamingChatResponseParser streamingChatResponseParser;
+    private final OverviewStreamingResponseParser overviewStreamingResponseParser;
 
     public QueryController(ChatService chatService, RequestValidatorService validatorService, 
     PantryService pantryService, OpenAiStreamingChatService openAiStreamingChatService, 
-    StreamingChatResponseParser streamingChatResponseParser) {
+    StreamingChatResponseParser streamingChatResponseParser, 
+    OverviewStreamingResponseParser overviewStreamingResponseParser) {
         this.chatService = chatService;
         this.validatorService = validatorService;
         this.pantryService = pantryService;
         this.openAiStreamingChatService = openAiStreamingChatService;
         this.streamingChatResponseParser = streamingChatResponseParser;
+        this.overviewStreamingResponseParser = overviewStreamingResponseParser;
     }
     
     @PostMapping("/query")
     public Mono<Recipe> query(@RequestBody final RecipeQueryRequest request) {
         // TODO maybe do tiered validation
         // first check if basic request is valid, then check if pantry is valid and chat is valid in parallel
-        return validatorService.validateRequest(request)
-                .flatMap(validatedRequest -> pantryService.enhanceRequestWithPantryInfo(validatedRequest))
-                .flatMap(enhancedRequest -> chatService.getChatResponse(enhancedRequest));
+        // return validatorService.validateRequest(request)
+        //         .flatMap(validatedRequest -> pantryService.enhanceRequestWithPantryInfo(validatedRequest))
+                // .flatMap(enhancedRequest -> chatService.getChatResponse(enhancedRequest));
+        return Mono.just(new Recipe());
     }
 
     @PostMapping(value = "/query/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -51,6 +56,8 @@ public class QueryController {
 
     @PostMapping(value = "/query/stream/test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> queryStreamTest(@RequestBody final RecipeQueryRequest request) {
-        return openAiStreamingChatService.streamOverviewChatCompletion(request);
+        final String requestId = UUID.randomUUID().toString();
+        return openAiStreamingChatService.streamOverviewChatCompletion(request)
+            .flatMap(token -> overviewStreamingResponseParser.parse(requestId, token));
     }
 } 

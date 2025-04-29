@@ -10,13 +10,10 @@ import reactor.core.publisher.Mono;
 public class ChatService {
 
     private final OpenAiChatModel openAiChatModel;
-    private final RecipeParserService recipeParserService;
     private final PromptBuilderService promptBuilderService;
 
-    public ChatService(OpenAiChatModel openAiChatModel, 
-        RecipeParserService recipeParserService, PromptBuilderService promptBuilderService) {
+    public ChatService(OpenAiChatModel openAiChatModel, PromptBuilderService promptBuilderService) {
         this.openAiChatModel = openAiChatModel;
-        this.recipeParserService = recipeParserService;
         this.promptBuilderService = promptBuilderService;
     }
 
@@ -32,9 +29,9 @@ public class ChatService {
         }
     }
     */
-    public Mono<Recipe> getChatResponse(RecipeQueryRequest request) {
-        String prompt = promptBuilderService.buildPrompt(request);
-        return Mono.fromCallable(() -> openAiChatModel.call(prompt))
-                .map(response -> recipeParserService.parseRecipe(response));
-    }
+    // public Mono<Recipe> getChatResponse(RecipeQueryRequest request) {
+    //     String prompt = promptBuilderService.buildPrompt(request);
+    //     return Mono.fromCallable(() -> openAiChatModel.call(prompt))
+    //             .map(response -> recipeParserService.parseRecipe(response));
+    // }
 } 
