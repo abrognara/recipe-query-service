@@ -8,7 +8,7 @@ import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @Service
-public class StreamingChatResponseParser {
+public class RecipeDetailsResponseConverter {
     private ConcurrentMap<String, String> responseMap = new ConcurrentHashMap<>();
     
     public Flux<String> parse(String responseId, String nextToken) {

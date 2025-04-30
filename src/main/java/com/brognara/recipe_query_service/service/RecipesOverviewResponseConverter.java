@@ -12,7 +12,7 @@ import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @Service
-public class OverviewStreamingResponseParser {
+public class RecipesOverviewResponseConverter {
     private ConcurrentMap<String, List<String>> responseMap = new ConcurrentHashMap<>();
     private AtomicInteger openBracketCount = new AtomicInteger(0);
     
