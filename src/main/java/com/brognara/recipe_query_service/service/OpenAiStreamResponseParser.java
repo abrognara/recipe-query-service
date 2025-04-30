@@ -20,7 +20,7 @@ public class OpenAiStreamResponseParser {
     }
 
     public Flux<String> parse(final String body) {
-        log.info("Received line: {}", body);
+//        log.info("Received line: {}", body);
         if (body.equals("[DONE]")) return Flux.empty();
         try {
             JsonNode root = objectMapper.readTree(body);

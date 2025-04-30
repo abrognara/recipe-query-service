@@ -13,26 +13,28 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 @Service
 public class RecipesOverviewResponseConverter {
-    private ConcurrentMap<String, List<String>> responseMap = new ConcurrentHashMap<>();
-    private AtomicInteger openBracketCount = new AtomicInteger(0);
+    private final ConcurrentMap<String, List<String>> responseMap = new ConcurrentHashMap<>();
+    private final AtomicInteger openBracketCount = new AtomicInteger(0);
     
     public Flux<String> parse(String responseId, String nextToken) {
-        log.info("Parsing nextToken: {}", nextToken);
-        if (nextToken.isEmpty() || nextToken.contains("]")) {
+        log.info("Parsing nextToken: <{}>", nextToken);
+        if (nextToken.isEmpty()) {
             return Flux.empty();
         }
 
         // response start at first open bracket
         if (isResponseStart(nextToken)) {
-            return Flux.just(nextToken);
-        
+            return Flux.empty();
+        }
+
         // response end at last close bracket
-        } else if (isResponseEnd(nextToken)) {
+        if (isResponseEnd(nextToken)) {
             responseMap.remove(responseId);
-            return Flux.just(nextToken);
+            return Flux.empty();
+        }
 
         // start of new json object
-        } else if (nextToken.contains("{")) {
+        if (nextToken.contains("{")) {
             List<String> responseList = new LinkedList<>();
             responseList.add(nextToken);
             responseMap.put(responseId, responseList);
@@ -46,35 +48,36 @@ public class RecipesOverviewResponseConverter {
             } else {
                 prevObjEndStr = nextToken.substring(0, nextToken.indexOf("}") + 1);
             }
-
-            String possibleRemainingStr = nextToken.substring(nextToken.indexOf("}"));
-
+//            String possibleRemainingStr = nextToken.substring(nextToken.indexOf("}"));
             responseMap.get(responseId).add(prevObjEndStr);
-            String completeResponse = String.join("", responseMap.get(responseId));
+            String completeResponse = String.join("", responseMap.get(responseId))
+                    .replace("\n", ""); // TODO could we remove newlines in the loop?
             responseMap.put(responseId, new LinkedList<>());
 
             log.info("Returning complete response: {}", completeResponse);
             return Flux.just(completeResponse);
-        } else {
+        } else if (responseMap.containsKey(responseId)) {
             responseMap.get(responseId).add(nextToken);
             return Flux.empty();
         }
+
+        return Flux.empty();
     }
 
     private boolean isResponseStart(final String nextToken) {
         if (nextToken.contains("[")) {
-            openBracketCount.incrementAndGet();
+            int prev = openBracketCount.getAndIncrement();
+            return prev == 0;
         }
-
-        return openBracketCount.get() == 1;
+        return false;
     }
 
     private boolean isResponseEnd(final String nextToken) {
         if (nextToken.contains("]")) {
-            openBracketCount.decrementAndGet();
+            int cur = openBracketCount.decrementAndGet();
+            return cur == 0;
         }
-
-        return openBracketCount.get() == 0;
+        return false;
     }
 
 }

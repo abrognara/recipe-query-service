@@ -31,7 +31,7 @@ public class TestDataUtils {
                     .map(line -> line.substring(line.indexOf("Received line:") + "Received line:".length()).trim())
             );
         } catch (IOException e) {
-            log.error("Error reading sample response file: {}", e);
+            log.error("Error reading sample response file: {}", e.toString());
             return Flux.empty();
         }
     }
