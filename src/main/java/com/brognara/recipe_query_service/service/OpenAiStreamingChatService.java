@@ -25,14 +25,17 @@ public class OpenAiStreamingChatService {
     private final ObjectMapper objectMapper;
     private final PromptBuilderService promptBuilderService;
     private final OverviewPromptBuilderService overviewPromptBuilderService;
-
+    private final OpenAiStreamResponseParser openAiStreamResponseParser;
+    
     @Autowired
     public OpenAiStreamingChatService(WebClient openAiWebClient, ObjectMapper objectMapper, 
-        PromptBuilderService promptBuilderService, OverviewPromptBuilderService overviewPromptBuilderService) {
+        PromptBuilderService promptBuilderService, OverviewPromptBuilderService overviewPromptBuilderService,
+        OpenAiStreamResponseParser openAiStreamResponseParser) {
         this.openAiWebClient = openAiWebClient;
         this.objectMapper = objectMapper;
         this.promptBuilderService = promptBuilderService;
         this.overviewPromptBuilderService = overviewPromptBuilderService;
+        this.openAiStreamResponseParser = openAiStreamResponseParser;
     }
 
     public Flux<String> streamOverviewChatCompletion(final RecipeQueryRequest request) {
@@ -61,21 +64,7 @@ public class OpenAiStreamingChatService {
             .bodyValue(requestBody)
             .retrieve()
             .bodyToFlux(String.class)
-            .flatMap(line -> {
-                log.info("Received line: {}", line);
-                if (line.equals("[DONE]")) return Flux.empty();
-                try {
-                    JsonNode root = objectMapper.readTree(line);
-                    String content = root
-                        .path("choices").get(0)
-                        .path("delta")
-                        .path("content").asText("");
-                    return Flux.just(content);
-                } catch (Exception e) {
-                    log.error("Error parsing JSON: {}", e.getMessage());
-                    return Flux.empty();
-                }
-            });
+            .flatMap(body -> openAiStreamResponseParser.parse(body));
             // TODO add intermediate step to parse the json output in sections and return as flux
             // TODO parenthesis stack to handle nested parenthesis
     }

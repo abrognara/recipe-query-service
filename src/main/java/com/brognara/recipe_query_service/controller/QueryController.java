@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
 import org.springframework.http.MediaType;
-import com.brognara.recipe_query_service.service.StreamingChatResponseParser;
+import com.brognara.recipe_query_service.service.RecipeDetailsResponseConverter;
 import java.util.UUID;
-import com.brognara.recipe_query_service.service.OverviewStreamingResponseParser;
+import com.brognara.recipe_query_service.service.RecipesOverviewResponseConverter;
 
 @RestController
 @RequestMapping("/api")
@@ -22,19 +22,19 @@ public class QueryController {
     private final RequestValidatorService validatorService;
     private final PantryService pantryService;
     private final OpenAiStreamingChatService openAiStreamingChatService;
-    private final StreamingChatResponseParser streamingChatResponseParser;
-    private final OverviewStreamingResponseParser overviewStreamingResponseParser;
+    private final RecipeDetailsResponseConverter recipeDetailsResponseConverter;
+    private final RecipesOverviewResponseConverter recipesOverviewResponseConverter;
 
     public QueryController(ChatService chatService, RequestValidatorService validatorService, 
     PantryService pantryService, OpenAiStreamingChatService openAiStreamingChatService, 
-    StreamingChatResponseParser streamingChatResponseParser, 
-    OverviewStreamingResponseParser overviewStreamingResponseParser) {
+    RecipeDetailsResponseConverter recipeDetailsResponseConverter, 
+    RecipesOverviewResponseConverter recipesOverviewResponseConverter) {
         this.chatService = chatService;
         this.validatorService = validatorService;
         this.pantryService = pantryService;
         this.openAiStreamingChatService = openAiStreamingChatService;
-        this.streamingChatResponseParser = streamingChatResponseParser;
-        this.overviewStreamingResponseParser = overviewStreamingResponseParser;
+        this.recipeDetailsResponseConverter = recipeDetailsResponseConverter;
+        this.recipesOverviewResponseConverter = recipesOverviewResponseConverter;
     }
     
     @PostMapping("/query")
@@ -51,13 +51,13 @@ public class QueryController {
     public Flux<String> queryStream(@RequestBody final RecipeQueryRequest request) {
         final String requestId = UUID.randomUUID().toString();
         return openAiStreamingChatService.streamDetailsChatCompletion(request)
-            .flatMap(token -> streamingChatResponseParser.parse(requestId, token));
+            .flatMap(token -> recipeDetailsResponseConverter.parse(requestId, token));
     }
 
     @PostMapping(value = "/query/stream/test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> queryStreamTest(@RequestBody final RecipeQueryRequest request) {
         final String requestId = UUID.randomUUID().toString();
         return openAiStreamingChatService.streamOverviewChatCompletion(request)
-            .flatMap(token -> overviewStreamingResponseParser.parse(requestId, token));
+            .flatMap(token -> recipesOverviewResponseConverter.parse(requestId, token));
     }
 } 

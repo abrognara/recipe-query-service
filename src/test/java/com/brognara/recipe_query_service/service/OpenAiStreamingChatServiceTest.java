@@ -1,32 +1,24 @@
 package com.brognara.recipe_query_service.service;
 
-import com.brognara.recipe_query_service.model.Recipe;
 import com.brognara.recipe_query_service.model.RecipeQueryRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.stringtemplate.v4.compiler.CodeGenerator.primary_return;
-
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import java.time.Duration;
-import java.util.List;
 import java.util.stream.IntStream;
 import org.springframework.test.util.ReflectionTestUtils;
 import lombok.extern.log4j.Log4j2;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+
+import com.brognara.recipe_query_service.TestDataUtils;
 
 @Log4j2
 class OpenAiStreamingChatServiceTest {
@@ -52,12 +44,15 @@ class OpenAiStreamingChatServiceTest {
     @Mock
     private OverviewPromptBuilderService overviewPromptBuilderService;
 
+    @Mock
+    private OpenAiStreamResponseParser openAiStreamResponseParser;
+
     private OpenAiStreamingChatService chatService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        chatService = new OpenAiStreamingChatService(webClient, new ObjectMapper(), promptBuilderService, overviewPromptBuilderService);
+        chatService = new OpenAiStreamingChatService(webClient, new ObjectMapper(), promptBuilderService, overviewPromptBuilderService, openAiStreamResponseParser);
         ReflectionTestUtils.setField(chatService, "model", "gpt-4.1-mini-2025-04-14");
     }
 
@@ -111,7 +106,7 @@ class OpenAiStreamingChatServiceTest {
         when(headerSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.bodyToFlux(String.class))
             .thenReturn(
-                generateMockResponseStream()
+                TestDataUtils.generateRecipeDetailsResponseStream()
                     .delayElements(Duration.ofMillis(5))
             );
 
@@ -129,17 +124,5 @@ class OpenAiStreamingChatServiceTest {
         sb.append("\"},\"logprobs\":null,\"finish_reason\":null}]}");
         return sb.toString();
     }
-
-    public static Flux<String> generateMockResponseStream() {
-        try {
-            return Flux.fromStream(
-                Files.lines(Paths.get("src/test/resources/sample-response.txt"))
-                    .filter(line -> line.contains("Received line:"))
-                    .map(line -> line.substring(line.indexOf("Received line:") + "Received line:".length()).trim())
-            );
-        } catch (IOException e) {
-            log.error("Error reading sample response file: {}", e);
-            return Flux.empty();
-        }
-    }
+    
 } 
