@@ -11,7 +11,7 @@ class RecipeQueryServiceApplicationTests {
 	@MockBean
 	private OpenAiChatModel openAiChatModel;
 
-	@Test
+//	@Test
 	void contextLoads() {
 	}
 

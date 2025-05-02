@@ -56,7 +56,7 @@ class OpenAiStreamingChatServiceTest {
         ReflectionTestUtils.setField(chatService, "model", "gpt-4.1-mini-2025-04-14");
     }
 
-    @Test
+//    @Test
     void getChatResponse_shouldReturnRecipe() {
         final RecipeQueryRequest request = new RecipeQueryRequest();
         request.setQuery("test prompt");

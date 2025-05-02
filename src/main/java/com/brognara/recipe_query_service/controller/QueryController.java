@@ -1,63 +1,72 @@
 package com.brognara.recipe_query_service.controller;
 
-import com.brognara.recipe_query_service.model.Recipe;
 import com.brognara.recipe_query_service.model.RecipeQueryRequest;
-import com.brognara.recipe_query_service.service.ChatService;
-import com.brognara.recipe_query_service.service.PantryService;
-import com.brognara.recipe_query_service.service.RequestValidatorService;
-import com.brognara.recipe_query_service.service.OpenAiStreamingChatService;
+import com.brognara.recipe_query_service.service.*;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
 import org.springframework.http.MediaType;
-import com.brognara.recipe_query_service.service.RecipeDetailsResponseConverter;
-import java.util.UUID;
-import com.brognara.recipe_query_service.service.RecipesOverviewResponseConverter;
 
+import java.util.UUID;
+
+import reactor.util.function.Tuple2;
+
+@Log4j2
 @RestController
 @RequestMapping("/api")
 public class QueryController {
 
-    private final ChatService chatService;
     private final RequestValidatorService validatorService;
     private final PantryService pantryService;
     private final OpenAiStreamingChatService openAiStreamingChatService;
     private final RecipeDetailsResponseConverter recipeDetailsResponseConverter;
     private final RecipesOverviewResponseConverter recipesOverviewResponseConverter;
+    private final OpenAiResponsesApiService openAiResponsesApiService;
 
-    public QueryController(ChatService chatService, RequestValidatorService validatorService, 
-    PantryService pantryService, OpenAiStreamingChatService openAiStreamingChatService, 
-    RecipeDetailsResponseConverter recipeDetailsResponseConverter, 
-    RecipesOverviewResponseConverter recipesOverviewResponseConverter) {
-        this.chatService = chatService;
+    @Autowired
+    public QueryController(RequestValidatorService validatorService,
+                           PantryService pantryService, OpenAiStreamingChatService openAiStreamingChatService,
+                           RecipeDetailsResponseConverter recipeDetailsResponseConverter,
+                           RecipesOverviewResponseConverter recipesOverviewResponseConverter, OpenAiResponsesApiService openAiResponsesApiService) {
         this.validatorService = validatorService;
         this.pantryService = pantryService;
         this.openAiStreamingChatService = openAiStreamingChatService;
         this.recipeDetailsResponseConverter = recipeDetailsResponseConverter;
         this.recipesOverviewResponseConverter = recipesOverviewResponseConverter;
-    }
-    
-    @PostMapping("/query")
-    public Mono<Recipe> query(@RequestBody final RecipeQueryRequest request) {
-        // TODO maybe do tiered validation
-        // first check if basic request is valid, then check if pantry is valid and chat is valid in parallel
-        // return validatorService.validateRequest(request)
-        //         .flatMap(validatedRequest -> pantryService.enhanceRequestWithPantryInfo(validatedRequest))
-                // .flatMap(enhancedRequest -> chatService.getChatResponse(enhancedRequest));
-        return Mono.just(new Recipe());
+        this.openAiResponsesApiService = openAiResponsesApiService;
     }
 
-    @PostMapping(value = "/query/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/query/details", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> queryStream(@RequestBody final RecipeQueryRequest request) {
         final String requestId = UUID.randomUUID().toString();
         return openAiStreamingChatService.streamDetailsChatCompletion(request)
             .flatMap(token -> recipeDetailsResponseConverter.parse(requestId, token));
     }
 
-    @PostMapping(value = "/query/stream/test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> queryStreamTest(@RequestBody final RecipeQueryRequest request) {
+    @PostMapping(value = "/query/overview", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> queryRecipesOverview(@RequestBody final RecipeQueryRequest request) {
+        // TODO maybe do tiered validation
+        // first check if basic request is valid, then check if pantry is valid and chat is valid in parallel
         final String requestId = UUID.randomUUID().toString();
-        return openAiStreamingChatService.streamOverviewChatCompletion(request)
-            .flatMap(token -> recipesOverviewResponseConverter.parse(requestId, token));
+        return validatorService.validateRequest(request) // validate first
+                .flatMap(validatedRequest ->
+                        Mono.zip(
+                                Mono.just(validatedRequest),
+                                pantryService.enhanceRequestWithPantryInfo(validatedRequest)
+                        )
+                )
+                .map(Tuple2::getT2) // Use the enhanced request
+                .flatMapMany(enhancedRequest ->
+                        openAiStreamingChatService.streamOverviewChatCompletion(enhancedRequest)
+                                .flatMap(token -> recipesOverviewResponseConverter.parse(requestId, token))
+                );
+    }
+
+    @PostMapping("/query/web-search-test")
+    public Mono<String> webSearchTest(@RequestBody final String userPrompt) {
+        return openAiResponsesApiService.getOpenAiResponseWebSearch(userPrompt)
+                .doOnNext(response -> log.info("Web search response: {}", response));
     }
 } 
