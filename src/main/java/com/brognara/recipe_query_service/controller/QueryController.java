@@ -65,8 +65,9 @@ public class QueryController {
     }
 
     @PostMapping("/query/web-search-test")
-    public Mono<String> webSearchTest(@RequestBody final String userPrompt) {
-        return openAiResponsesApiService.getOpenAiResponseWebSearch(userPrompt)
+    public Flux<String> webSearchTest(@RequestBody final String userPrompt) {
+        final String requestId = UUID.randomUUID().toString();
+        return openAiResponsesApiService.getOpenAiResponseWebSearch(requestId, userPrompt)
                 .doOnNext(response -> log.info("Web search response: {}", response));
     }
 } 

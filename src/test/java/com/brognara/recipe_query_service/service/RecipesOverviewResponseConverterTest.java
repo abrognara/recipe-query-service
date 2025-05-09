@@ -12,7 +12,9 @@ import java.util.List;
 
 public class RecipesOverviewResponseConverterTest {
 
-    private final RecipesOverviewResponseConverter responseConverter = new RecipesOverviewResponseConverter();
+    private final ResponseContextService responseContextService = new ResponseContextService();
+    private final RecipesOverviewResponseConverter responseConverter
+            = new RecipesOverviewResponseConverter(responseContextService);
     private final OpenAiStreamResponseParser openAiStreamResponseParser
             = new OpenAiStreamResponseParser(new ObjectMapper());
 
@@ -21,6 +23,7 @@ public class RecipesOverviewResponseConverterTest {
     @Test
     public void testParse() {
         final String testRequestId = "testRequestId";
+        responseContextService.initContext(testRequestId, "openAiRequestId-1234");
 //        Flux<String> overviewJsonStrFlux =
                 TestDataUtils.getRecipeOverviewResponseTokenStream(openAiStreamResponseParser)
                 .flatMap(token -> responseConverter.parse(testRequestId, token))

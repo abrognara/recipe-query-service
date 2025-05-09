@@ -1,0 +1,45 @@
+{
+  "name": "recipe_collection",
+  "type": "json_schema",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "recipes": {
+        "type": "array",
+        "description": "An array of recipe objects.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the recipe."
+            },
+            "cook_time": {
+              "type": "string",
+              "description": "The cook time for the recipe."
+            },
+            "user_missing_ingredients": {
+              "type": "array",
+              "description": "List of ingredients the user is missing to prepare the recipe.",
+              "items": {
+                "type": "string",
+                "description": "The name of the missing ingredient."
+              }
+            }
+          },
+          "required": [
+            "name",
+            "cook_time",
+            "user_missing_ingredients"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "recipes"
+    ],
+    "additionalProperties": false
+  }
+}
