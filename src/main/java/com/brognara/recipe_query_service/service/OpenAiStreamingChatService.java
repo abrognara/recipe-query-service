@@ -10,9 +10,7 @@ import java.util.List;
 import org.springframework.http.MediaType;
 import lombok.extern.log4j.Log4j2;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.brognara.recipe_query_service.model.RecipeQueryRequest;
-import com.brognara.recipe_query_service.service.OverviewPromptBuilderService;
+import com.brognara.recipe_query_service.model.RecipeQuerySessionRequest;
 
 @Log4j2
 @Service
@@ -38,12 +36,12 @@ public class OpenAiStreamingChatService {
         this.openAiStreamResponseParser = openAiStreamResponseParser;
     }
 
-    public Flux<String> streamOverviewChatCompletion(final RecipeQueryRequest request) {
+    public Flux<String> streamOverviewChatCompletion(final RecipeQuerySessionRequest request) {
         final String prompt = overviewPromptBuilderService.buildPrompt(request);
         return streamChatCompletion(prompt);
     }
 
-    public Flux<String> streamDetailsChatCompletion(final RecipeQueryRequest request) {
+    public Flux<String> streamDetailsChatCompletion(final RecipeQuerySessionRequest request) {
         final String prompt = promptBuilderService.buildPrompt(request);
         return streamChatCompletion(prompt);
     }

@@ -1,0 +1,110 @@
+{
+  "id": "resp_6813e7fbff8881918f4209804eb3cbeb0745699056afe004",
+  "object": "response",
+  "created_at": 1746135036,
+  "status": "completed",
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "model": "gpt-4.1-mini-2025-04-14",
+  "output": [
+    {
+      "id": "ws_6813e7fc08b48191a4ce580412d423110745699056afe004",
+      "type": "web_search_call",
+      "status": "completed"
+    },
+    {
+      "id": "msg_6813e7fe930c8191830cb94c4d8fe5660745699056afe004",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [
+            {
+              "type": "url_citation",
+              "end_index": 539,
+              "start_index": 435,
+              "title": "Air Fryer Chicken And Broccoli Casserole - Fork To Spoon",
+              "url": "https://forktospoon.com/air-fryer-chicken-and-broccoli-casserole/?utm_source=openai"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 906,
+              "start_index": 797,
+              "title": "Air Fryer Chicken & Broccoli (with creamy chili mayo) - Little Sunny Kitchen",
+              "url": "https://littlesunnykitchen.com/air-fryer-chicken-and-broccoli//?utm_source=openai"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 1263,
+              "start_index": 1147,
+              "title": "Air Fryer Broccoli Cheese Stuffed Chicken - Foody Schmoody Blog",
+              "url": "https://foodyschmoodyblog.com/air-fryer-broccoli-cheese-stuffed-chicken?utm_source=openai"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 1580,
+              "start_index": 1477,
+              "title": "Creamy Skillet Chicken - Hummingbird Thyme",
+              "url": "https://hummingbirdthyme.com/creamy-skillet-chicken-recipe/?utm_source=openai"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 1945,
+              "start_index": 1830,
+              "title": "Air Fryer Chicken Casserole (Ready in 20 Minutes!)",
+              "url": "https://www.pocketfriendlyrecipes.com/air-fryer-chicken-casserole/?utm_source=openai"
+            }
+          ],
+          "text": "Certainly! Here are some moderately sophisticated chicken dinner recipes that align with your dietary restrictions and utilize your available appliances:\n\n\n\n**Air Fryer Chicken and Broccoli Casserole**  \nThis dish combines seasoned diced chicken, saut\u00e9ed onions, garlic, white rice, heavy cream, chicken broth, broccoli florets, and shredded cheddar cheese. It's cooked in the air fryer, resulting in a creamy and flavorful casserole. ([forktospoon.com](https://forktospoon.com/air-fryer-chicken-and-broccoli-casserole/?utm_source=openai))\n\n\n\n\n**Air Fryer Chicken and Broccoli with Creamy Chili Mayo**  \nTender chicken pieces and broccoli are seasoned with garlic, ginger, soy sauce, sesame oil, honey, and sriracha, then air-fried to perfection. Serve with a creamy chili mayo for an added kick. ([littlesunnykitchen.com](https://littlesunnykitchen.com/air-fryer-chicken-and-broccoli//?utm_source=openai))\n\n\n\n\n**Air Fryer Broccoli Cheese Stuffed Chicken**  \nBoneless, skinless chicken breasts are stuffed with a mixture of broccoli and cheese, then air-fried until golden brown. This dish offers a delightful combination of flavors and textures. ([foodyschmoodyblog.com](https://foodyschmoodyblog.com/air-fryer-broccoli-cheese-stuffed-chicken?utm_source=openai))\n\n\n\n\n**Creamy Skillet Chicken**  \nChicken thighs are seared and then baked in a creamy sauce made with garlic, herbs, tomatoes, and olives. This dish is rich in flavor and can be served with pasta or crusty bread. ([hummingbirdthyme.com](https://hummingbirdthyme.com/creamy-skillet-chicken-recipe/?utm_source=openai))\n\n\n\n\n**Air Fryer Chicken Casserole**  \nA comforting casserole featuring egg noodles, shredded chicken, chicken soup, milk, cheddar cheese, crumbled bacon, fried shallots, and green onions. It's baked in the air fryer for a quick and satisfying meal. ([pocketfriendlyrecipes.com](https://www.pocketfriendlyrecipes.com/air-fryer-chicken-casserole/?utm_source=openai))\n\n\nThese recipes should provide a variety of flavors and cooking methods to suit your preferences and available appliances. Enjoy your cooking! "
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "service_tier": "auto",
+  "store": true,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "required",
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_p": 1.0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 456,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 481,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 937
+  },
+  "user": null,
+  "metadata": {}
+}

@@ -1,0 +1,59 @@
+{
+  "name": "recipe_collection",
+  "type": "json_schema",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "required": [
+      "recipes"
+    ],
+    "properties": {
+      "recipes": {
+        "type": "array",
+        "description": "An array of recipe objects.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the recipe."
+            },
+            "cook_time": {
+              "type": "string",
+              "description": "The cook time for the recipe."
+            },
+            "ingredients": {
+              "type": "array",
+              "description": "List of all ingredients required by the recipe.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the ingredient."
+                  },
+                  "amount": {
+                    "type": "string",
+                    "description": "The amount of the ingredient."
+                  }
+                },
+                "required": [
+                  "name",
+                  "amount"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "name",
+            "cook_time",
+            "ingredients"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+}

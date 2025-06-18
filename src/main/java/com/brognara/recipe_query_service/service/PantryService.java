@@ -1,18 +1,18 @@
 package com.brognara.recipe_query_service.service;
 
-import com.brognara.recipe_query_service.model.RecipeQueryRequest;
+import com.brognara.recipe_query_service.model.RecipeQuerySessionRequest;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.util.Set;
+import java.util.List;
 
 @Service
 public class PantryService {
 
-    public Mono<Set<String>> getAvailableIngredients() {
+    public Mono<List<String>> getAvailableIngredients() {
         // TODO: Implement actual pantry service integration
         // This is a mock implementation that returns some common ingredients
-        return Mono.just(Set.of(
+        return Mono.just(List.of(
             "salt",
             "pepper",
             "olive oil",
@@ -30,17 +30,14 @@ public class PantryService {
         ));
     }
 
-    public Mono<RecipeQueryRequest> enhanceRequestWithPantryInfo(RecipeQueryRequest request) {
+    public Mono<RecipeQuerySessionRequest> enhanceRequestWithPantryInfo(RecipeQuerySessionRequest request) {
         if (!request.isUseAvailableIngredients()) {
             return Mono.just(request);
         }
 
         return getAvailableIngredients()
-                .map(availableIngredients -> {
-                    // Add pantry information to the query
-                    String pantryInfo = String.format(" I have these ingredients available: %s. ",
-                            String.join(", ", availableIngredients));
-                    request.setQuery(request.getQuery() + pantryInfo);
+                .map(ingredients -> {
+                    request.setAvailableIngredients(ingredients);
                     return request;
                 });
     }

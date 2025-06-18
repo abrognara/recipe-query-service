@@ -9,7 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RecipeQueryRequest {
+public class RecipeQuerySessionRequest {
+    // TODO add mode for pantry usage: STRICT, SOME, NONE
     private String query;
     private int servings;
     private boolean useAvailableIngredients;
