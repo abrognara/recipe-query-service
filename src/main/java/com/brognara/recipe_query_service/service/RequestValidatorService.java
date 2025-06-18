@@ -1,13 +1,13 @@
 package com.brognara.recipe_query_service.service;
 
-import com.brognara.recipe_query_service.model.RecipeQueryRequest;
+import com.brognara.recipe_query_service.model.RecipeQuerySessionRequest;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 @Service
 public class RequestValidatorService {
 
-    public Mono<RecipeQueryRequest> validateRequest(RecipeQueryRequest request) {
+    public Mono<RecipeQuerySessionRequest> validateRequest(RecipeQuerySessionRequest request) {
         return Mono.just(request)
                 .flatMap(req -> {
                     // Validate basic requirements

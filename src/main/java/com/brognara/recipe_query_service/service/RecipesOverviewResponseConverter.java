@@ -23,7 +23,7 @@ public class RecipesOverviewResponseConverter {
     }
 
     public Flux<String> parse(String appRequestId, String nextToken) {
-        log.info("Parsing nextToken: <{}>", nextToken);
+//        log.info("Parsing nextToken: <{}>", nextToken);
         if (nextToken.isEmpty()) {
             return Flux.empty();
         }

@@ -1,6 +1,6 @@
 package com.brognara.recipe_query_service.service;
 
-import com.brognara.recipe_query_service.model.RecipeQueryRequest;
+import com.brognara.recipe_query_service.model.RecipeQuerySessionRequest;
 import org.springframework.stereotype.Service;
 import lombok.extern.log4j.Log4j2;
 
@@ -15,7 +15,7 @@ public class OverviewPromptBuilderService {
     private static final String OUTPUT_FORMAT_PROMPT = "Return a list of 10 relevant recipes with only the following info in one json object per recipe in the following json schema: { “name”: <recipe name>, “cook_time”: <cook time>, “user_missing_ingredients”: [ <ingredient name>, … ] }. Order the list by the number of user missing ingredients, with recipes containing the least number of missing ingredients first.";
     private static final String PERIOD_NEXT_INSTRUCTION = ". ";
 
-    public String buildPrompt(RecipeQueryRequest request) {
+    public String buildPrompt(RecipeQuerySessionRequest request) {
         StringBuilder prompt = new StringBuilder(BASE_PROMPT);
         prompt.append(request.getQuery());
         prompt.append(PERIOD_NEXT_INSTRUCTION);
@@ -42,7 +42,7 @@ public class OverviewPromptBuilderService {
         return finalPrompt;
     }
 
-    private void addDietaryRestrictions(StringBuilder prompt, RecipeQueryRequest request) {
+    private void addDietaryRestrictions(StringBuilder prompt, RecipeQuerySessionRequest request) {
         if (!request.getUserPreferences().getDietaryRestrictions().isEmpty()) {
             prompt.append(DIETARY_RESTRICTIONS_PROMPT);
             request.getUserPreferences().getDietaryRestrictions().forEach(restriction -> 
@@ -52,14 +52,14 @@ public class OverviewPromptBuilderService {
         }
     }
 
-    private void addSpicePreference(StringBuilder prompt, RecipeQueryRequest request) {
+    private void addSpicePreference(StringBuilder prompt, RecipeQuerySessionRequest request) {
         if (request.getUserPreferences().getSpicePreference() != null) {
             prompt.append("\nSpice level: ").append(request.getUserPreferences().getSpicePreference().name().toLowerCase());
             prompt.append(PERIOD_NEXT_INSTRUCTION);
         }
     }
 
-    private void addAvailableAppliances(StringBuilder prompt, RecipeQueryRequest request) {
+    private void addAvailableAppliances(StringBuilder prompt, RecipeQuerySessionRequest request) {
         if (!request.getUserPreferences().getAppliancesOwned().isEmpty()) {
             prompt.append(APPLIANCES_PROMPT);
             request.getUserPreferences().getAppliancesOwned().forEach(appliance -> 

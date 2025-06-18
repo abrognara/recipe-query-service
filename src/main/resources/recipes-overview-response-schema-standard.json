@@ -4,6 +4,9 @@
   "strict": true,
   "schema": {
     "type": "object",
+    "required": [
+      "recipes"
+    ],
     "properties": {
       "recipes": {
         "type": "array",
@@ -19,27 +22,38 @@
               "type": "string",
               "description": "The cook time for the recipe."
             },
-            "user_missing_ingredients": {
+            "ingredients": {
               "type": "array",
-              "description": "List of ingredients the user is missing to prepare the recipe.",
+              "description": "List of all ingredients required by the recipe.",
               "items": {
-                "type": "string",
-                "description": "The name of the missing ingredient."
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the ingredient."
+                  },
+                  "amount": {
+                    "type": "string",
+                    "description": "The amount of the ingredient."
+                  }
+                },
+                "required": [
+                  "name",
+                  "amount"
+                ],
+                "additionalProperties": false
               }
             }
           },
           "required": [
             "name",
             "cook_time",
-            "user_missing_ingredients"
+            "ingredients"
           ],
           "additionalProperties": false
         }
       }
     },
-    "required": [
-      "recipes"
-    ],
     "additionalProperties": false
   }
 }

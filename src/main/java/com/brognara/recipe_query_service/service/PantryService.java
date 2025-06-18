@@ -1,11 +1,10 @@
 package com.brognara.recipe_query_service.service;
 
-import com.brognara.recipe_query_service.model.RecipeQueryRequest;
+import com.brognara.recipe_query_service.model.RecipeQuerySessionRequest;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class PantryService {
@@ -31,7 +30,7 @@ public class PantryService {
         ));
     }
 
-    public Mono<RecipeQueryRequest> enhanceRequestWithPantryInfo(RecipeQueryRequest request) {
+    public Mono<RecipeQuerySessionRequest> enhanceRequestWithPantryInfo(RecipeQuerySessionRequest request) {
         if (!request.isUseAvailableIngredients()) {
             return Mono.just(request);
         }

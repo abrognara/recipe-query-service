@@ -1,6 +1,6 @@
 package com.brognara.recipe_query_service.service;
 
-import com.brognara.recipe_query_service.model.RecipeQueryRequest;
+import com.brognara.recipe_query_service.model.RecipeQuerySessionRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +58,7 @@ class OpenAiStreamingChatServiceTest {
 
 //    @Test
     void getChatResponse_shouldReturnRecipe() {
-        final RecipeQueryRequest request = new RecipeQueryRequest();
+        final RecipeQuerySessionRequest request = new RecipeQuerySessionRequest();
         request.setQuery("test prompt");
 
         String[] mockResponseTokens = IntStream.range(0, 5)
@@ -95,7 +95,7 @@ class OpenAiStreamingChatServiceTest {
     // TODO: move to integration test
     @Test
     void componentTest() {
-        final RecipeQueryRequest request = new RecipeQueryRequest();
+        final RecipeQuerySessionRequest request = new RecipeQuerySessionRequest();
         request.setQuery("test prompt");
 
         when(webClient.post()).thenReturn(uriSpec);
