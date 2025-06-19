@@ -13,15 +13,6 @@ class QueryControllerTest {
     @Mock
     private PantryService pantryService;
 
-    @Mock
-    private OpenAiStreamingChatService openAiStreamingChatService;
-
-    @Mock
-    private RecipeDetailsResponseConverter recipeDetailsResponseConverter;
-
-    @Mock
-    private RecipesOverviewResponseConverter recipesOverviewResponseConverter;
-
     @InjectMocks
     private QueryController queryController;
 

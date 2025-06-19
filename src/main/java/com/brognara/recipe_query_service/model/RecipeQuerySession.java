@@ -9,6 +9,7 @@ import java.util.LinkedList;
 @NoArgsConstructor
 @Getter
 @Setter
+@ToString
 public class RecipeQuerySession {
     private String sessionId;
     private String userId;

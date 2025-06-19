@@ -15,21 +15,16 @@ import static com.brognara.recipe_query_service.model.ResponsesApiEventType.*;
 public class OpenAiResponsesApiEventParser {
 
     private final RecipeQuerySessionService recipeQuerySessionService;
-    private final ResponseContextService responseContextService;
     private final ObjectMapper objectMapper;
-    private final RecipesOverviewResponseConverter responseConverter;
 
     @Autowired
     public OpenAiResponsesApiEventParser(
-            RecipeQuerySessionService recipeQuerySessionService, final ResponseContextService responseContextService, final ObjectMapper objectMapper,
-            final RecipesOverviewResponseConverter responseConverter) {
+            RecipeQuerySessionService recipeQuerySessionService, final ObjectMapper objectMapper) {
         this.recipeQuerySessionService = recipeQuerySessionService;
-        this.responseContextService = responseContextService;
         this.objectMapper = objectMapper;
-        this.responseConverter = responseConverter;
     }
 
-    public Flux<String> parseEvent(final String appRequestId, final String jsonResponse) {
+    public Flux<String> parseEvent(final String appRequestId, final String sessionId, final String jsonResponse) {
         JsonNode jsonRoot;
         try {
 //            log.info("Parsing response: {}", jsonResponse);
@@ -45,12 +40,11 @@ public class OpenAiResponsesApiEventParser {
         switch (responseType) {
             case RESPONSE_CREATED:
                 final String openAiRequestId = jsonRoot.get("response").get("id").asText();
-                responseContextService.initContext(appRequestId, openAiRequestId);
+                recipeQuerySessionService.updatePrevOpenAiRequestId(sessionId, openAiRequestId);
                 log.info("openAiRequestId={}", openAiRequestId);
                 return Flux.empty();
 //            case RESPONSE_OUTPUT_TEXT_DELTA:
 //                final String outputTextDelta = jsonRoot.get("delta").asText();
-//                return responseConverter.parse(appRequestId, outputTextDelta);
             case RESPONSE_CONTENT_PART_DONE:
                 final String outputText = jsonRoot.get("part").get("text").asText();
                 return Flux.just(outputText);
