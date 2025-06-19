@@ -38,30 +38,30 @@ public class OpenAiResponsesApiService {
         this.eventParser = eventParser;
     }
 
-    public Flux<String> getOpenAiResponseStandard(final String appRequestId, final String userPrompt) {
+    public Flux<String> getOpenAiResponseStandard(final String appRequestId, final String sessionId, final String userPrompt) {
         final Map<String, Object> requestBody = new HashMap<>(createStandardRequestBody(userPrompt,
                 "recipes-overview-response-schema-standard.json"));
         requestBody.remove("tools");
         requestBody.remove("tool_choice");
-        return getOpenAiResponseWebSearch(appRequestId, requestBody);
+        return getOpenAiResponseWebSearch(appRequestId, sessionId, requestBody);
     }
 
-    public Flux<String> getOpenAiResponseWebSearch(final String appRequestId, final String userPrompt) {
+    public Flux<String> getOpenAiResponseWebSearch(final String appRequestId, final String sessionId, final String userPrompt) {
         final Map<String, Object> requestBody = createStandardRequestBody(
                 userPrompt, "recipes-overview-response-schema-web-search.json");
-        return getOpenAiResponseWebSearch(appRequestId, requestBody);
+        return getOpenAiResponseWebSearch(appRequestId, sessionId, requestBody);
     }
 
     public Flux<String> getOpenAiResponseWebSearchNextResults(
-            final String appRequestId, final String prevOpenAiResponseId, final String userPrompt) {
+            final String appRequestId, final String sessionId, final String prevOpenAiResponseId, final String userPrompt) {
         final Map<String, Object> requestBody = new HashMap<>(createStandardRequestBody(
                 userPrompt, "recipes-overview-response-schema-web-search.json"));
         requestBody.put("previous_response_id", prevOpenAiResponseId);
-        return getOpenAiResponseWebSearch(appRequestId, requestBody);
+        return getOpenAiResponseWebSearch(appRequestId, sessionId, requestBody);
     }
 
     private Flux<String> getOpenAiResponseWebSearch(
-            final String appRequestId, final Map<String, Object> requestBody) {
+            final String appRequestId, final String sessionId, final Map<String, Object> requestBody) {
         return openAiWebClient.post()
                 .uri("/responses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -75,7 +75,7 @@ public class OpenAiResponsesApiService {
                                 })
                 )
                 .bodyToFlux(String.class)
-                .flatMap(rawResponse -> eventParser.parseEvent(appRequestId, rawResponse));
+                .flatMap(rawResponse -> eventParser.parseEvent(appRequestId, sessionId, rawResponse));
     }
 
     private Map<String, Object> createStandardRequestBody(final String userPrompt, final String jsonSchemaFilename) {

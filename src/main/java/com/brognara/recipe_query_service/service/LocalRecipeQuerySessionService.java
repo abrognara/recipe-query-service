@@ -3,6 +3,7 @@ package com.brognara.recipe_query_service.service;
 import com.brognara.recipe_query_service.model.RecipeQuerySession;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +15,7 @@ public class LocalRecipeQuerySessionService implements RecipeQuerySessionService
 
     private final ConcurrentMap<String, RecipeQuerySession> recipeQuerySessionMap = new ConcurrentHashMap<>();
 
-    public void createSession(final String userId, final String userQuery) {
+    public Mono<String> createSession(final String userId, final String userQuery) {
         final RecipeQuerySession newSession = RecipeQuerySession.builder()
                 .sessionId(UUID.randomUUID().toString())
                 .userId(userId)
@@ -23,23 +24,25 @@ public class LocalRecipeQuerySessionService implements RecipeQuerySessionService
         log.info("Created new session: {}", newSession);
 
         recipeQuerySessionMap.put(
-                userId,
+                newSession.getSessionId(),
                 newSession
         );
+
+        return Mono.just(newSession.getSessionId());
     }
 
-    public RecipeQuerySession getSession(final String userId) {
-        return recipeQuerySessionMap.get(userId);
+    public Mono<RecipeQuerySession> getSession(final String sessionId) {
+        return Mono.just(recipeQuerySessionMap.get(sessionId));
     }
 
     @Override
-    public void updatePrevOpenAiRequestId(final String userId, final String prevOpenAiRequestId) {
-        recipeQuerySessionMap.get(userId)
+    public void updatePrevOpenAiRequestId(final String sessionId, final String prevOpenAiRequestId) {
+        recipeQuerySessionMap.get(sessionId)
                 .setPrevOpenAiResponseId(prevOpenAiRequestId);
     }
 
-    public void endSession(final String userId) {
-        recipeQuerySessionMap.remove(userId);
+    public void endSession(final String sessionId) {
+        recipeQuerySessionMap.remove(sessionId);
     }
 
 }
