@@ -21,7 +21,7 @@ import java.util.Map;
 @Service
 public class OpenAiResponsesApiService {
 
-    private static final String SYSTEM_TEXT_FOR_PROMPT = "You are a helpful assistant that can find recipes based on the user's prompt. Return 3 recipes per request. Try to choose different recipes each time to allow for variance amongst different users who may make similar requests, but all responses must satisfy the request and must be within the user's constraints.";
+    private static final String SYSTEM_TEXT_FOR_PROMPT = "You are a helpful assistant that can find recipes based on the user's prompt. Return 5 recipes per request. Try to choose different recipes each time to allow for variance amongst different users who may make similar requests, but all responses must satisfy the request and must be within the user's constraints.";
 
     @Value("${spring.ai.openai.model}")
     private String model;

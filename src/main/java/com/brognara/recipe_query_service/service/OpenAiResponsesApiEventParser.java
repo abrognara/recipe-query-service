@@ -47,6 +47,7 @@ public class OpenAiResponsesApiEventParser {
 //                final String outputTextDelta = jsonRoot.get("delta").asText();
             case RESPONSE_CONTENT_PART_DONE:
                 final String outputText = jsonRoot.get("part").get("text").asText();
+                log.info("{}", outputText);
                 return Flux.just(outputText);
             default:
                 log.info("Unmatched event: {}", responseType);

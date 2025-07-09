@@ -4,6 +4,7 @@ import com.brognara.recipe_query_service.model.RecipeQuerySession;
 import com.brognara.recipe_query_service.service.*;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import org.springframework.http.MediaType;
@@ -50,7 +51,7 @@ public class QueryController {
     }
 
     @PostMapping(value = "/query/web-search-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> webSearchTest(@RequestBody final String userPrompt) {
+    public Mono<ResponseEntity<Flux<String>>> webSearchTest(@RequestBody final String userPrompt) {
         final String requestId = UUID.randomUUID().toString();
         return userValidationService.validateUser()
                 .flatMap(userId ->
@@ -59,17 +60,23 @@ public class QueryController {
                                 recipeQuerySessionService.createSession(userId, userPrompt)
                         )
                 )
-                .flatMapMany(userAndSessionId -> {
+                .map(userAndSessionId -> {
                     final String userId = userAndSessionId.getT1();
                     final String sessionId = userAndSessionId.getT2();
                     log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
                             requestId, sessionId, userId);
-                    return openAiResponsesApiService.getOpenAiResponseWebSearch(requestId, sessionId, userPrompt);
+                    final Flux<String> eventStream = openAiResponsesApiService.getOpenAiResponseWebSearch(
+                            requestId, sessionId, userPrompt);
+
+                    return ResponseEntity.ok()
+                            .header("X-Session-Id", sessionId)
+                            .contentType(MediaType.TEXT_EVENT_STREAM)
+                            .body(eventStream);
                 });
     }
 
     @GetMapping(value = "/query/web-search-test/next", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> recipeQuerySessionNextResults(@RequestHeader("X-Session-Id") final String sessionId) {
+    public Mono<ResponseEntity<Flux<String>>> recipeQuerySessionNextResults(@RequestHeader("X-Session-Id") final String sessionId) {
         final String requestId = UUID.randomUUID().toString();
         return userValidationService.validateUser()
                 .flatMap(userId ->
@@ -78,15 +85,20 @@ public class QueryController {
                                 recipeQuerySessionService.getSession(sessionId)
                         )
                 )
-                .flatMapMany(userAndSessionId -> {
+                .map(userAndSessionId -> {
                     final String userId = userAndSessionId.getT1();
                     final RecipeQuerySession session = userAndSessionId.getT2();
                     log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
                             requestId, sessionId, userId);
                     final String userQuery = "Give me 3 unique recipes that you haven't given yet for my query: "
                             + session.getUserQuery();
-                    return openAiResponsesApiService.getOpenAiResponseWebSearchNextResults(
+                    final Flux<String> eventStream = openAiResponsesApiService.getOpenAiResponseWebSearchNextResults(
                             requestId, session.getSessionId(), session.getPrevOpenAiResponseId(), userQuery);
+
+                    return ResponseEntity.ok()
+                            .header("X-Session-Id", sessionId)
+                            .contentType(MediaType.TEXT_EVENT_STREAM)
+                            .body(eventStream);
                 });
     }
 
