@@ -1,5 +1,6 @@
 package com.brognara.recipe_query_service.controller;
 
+import com.brognara.recipe_query_service.model.Conversation;
 import com.brognara.recipe_query_service.service.*;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,9 @@ import reactor.core.publisher.Flux;
 import org.springframework.http.MediaType;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Log4j2
@@ -18,14 +22,16 @@ public class QueryController {
 
     private final OpenAiResponsesApiService openAiResponsesApiService;
     private final RecipeQuerySessionService recipeQuerySessionService;
+    private final ConversationSessionService conversationSessionService;
 
     @Autowired
     public QueryController(
             RequestValidatorService validatorService, PantryService pantryService,
-            OpenAiResponsesApiService openAiResponsesApiService, RecipeQuerySessionService recipeQuerySessionService
+            OpenAiResponsesApiService openAiResponsesApiService, RecipeQuerySessionService recipeQuerySessionService, ConversationSessionService conversationSessionService
     ) {
         this.openAiResponsesApiService = openAiResponsesApiService;
         this.recipeQuerySessionService = recipeQuerySessionService;
+        this.conversationSessionService = conversationSessionService;
     }
 
     @PostMapping(value = "/query/standard-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -52,43 +58,100 @@ public class QueryController {
         final String requestId = UUID.randomUUID().toString();
         log.info("[{}] POST /query/web-search-test ; userId={} ; userRoles={}",
                 requestId, userId, userRoles);
-        return recipeQuerySessionService.createSession(userId, userPrompt)
+        return conversationSessionService.createConversation(userId, userPrompt)
                 .map(sessionId -> {
                     log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
                             requestId, sessionId, userId);
-                    final Flux<String> eventStream = openAiResponsesApiService.getOpenAiResponseWebSearch(
-                            requestId, sessionId, userPrompt);
+                    final Flux<String> eventStream =
+//                            openAiResponsesApiService.getOpenAiResponseWebSearch(
+//                            requestId, sessionId, userPrompt);
+                            mockOpenAiResponseWebSearch();
+
+                    // Share the flux between "stream to client" and "aggregate for saving"
+                    Flux<String> sharedStream = eventStream.publish().autoConnect(2);
+
+                    Mono<String> saveToRedis = sharedStream
+                            .collectList()
+                            .flatMap(chunks -> {
+                                String fullResponse = String.join("", chunks);
+
+                                // TODO: parse OpenAI response JSON here
+                                Conversation.Message msg = new Conversation.Message(
+                                        "response",
+                                        fullResponse, // or parsed JSON object
+                                        Instant.now().toEpochMilli()
+                                );
+
+                                return conversationSessionService.addMessage(userId, sessionId, msg);
+                            });
+
+                    saveToRedis.subscribe();
 
                     return ResponseEntity.ok()
                             .header("X-Session-Id", sessionId)
                             .contentType(MediaType.TEXT_EVENT_STREAM)
-                            .body(eventStream);
+                            .body(sharedStream);
                 });
     }
 
-    @GetMapping(value = "/query/web-search-test/next", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<ResponseEntity<Flux<String>>> recipeQuerySessionNextResults(
-            @RequestHeader("X-Session-Id") final String sessionId,
+    @PutMapping(value = "/query/web-search-test/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Mono<ResponseEntity<Flux<String>>> recipeQuerySessionNextPrompt(
+            @RequestBody final String userPrompt,
             @RequestHeader("X-User-Id") final String userId,
-            @RequestHeader("X-User-Roles") final String userRoles
+            @RequestHeader("X-User-Roles") final String userRoles,
+            @PathVariable final String sessionId
     ) {
         final String requestId = UUID.randomUUID().toString();
-        log.info("[{}] GET /query/web-search-test/next ; userId={} ; userRoles={}",
-                requestId, userId, userRoles);
-        return recipeQuerySessionService.getSession(sessionId)
-                .map(session -> {
+        log.info("[{}] PUT /query/web-search-test/{} ; userId={} ; userRoles={}",
+                requestId, sessionId, userId, userRoles);
+        return conversationSessionService.getConversation(userId, sessionId)
+                .map(conversation -> {
                     log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
                             requestId, sessionId, userId);
-                    final String userQuery = "Give me 3 unique recipes that you haven't given yet for my query: "
-                            + session.getUserQuery();
-                    final Flux<String> eventStream = openAiResponsesApiService.getOpenAiResponseWebSearchNextResults(
-                            requestId, session.getSessionId(), session.getPrevOpenAiResponseId(), userQuery);
+
+                    // add new user prompt
+                    conversation.getConversation().add(
+                            new Conversation.Message("prompt", userPrompt, Instant.now().toEpochMilli())
+                    );
+
+                    // TODO enhance new user query if needed
+
+                    final Flux<String> eventStream =
+//                            openAiResponsesApiService.getOpenAiResponseWebSearchNextResults(
+//                            requestId, session.getSessionId(), session.getPrevOpenAiResponseId(), userQuery);
+                            mockOpenAiResponseWebSearch();
+
+                    // Share the flux between "stream to client" and "aggregate for saving"
+                    Flux<String> sharedStream = eventStream.publish().autoConnect(2);
+
+                    Mono<String> saveToRedis = sharedStream
+                            .collectList()
+                            .flatMap(chunks -> {
+                                String fullResponse = String.join("", chunks);
+                                // TODO: parse OpenAI response JSON here
+                                conversation.getConversation().add(
+                                        new Conversation.Message(
+                                                "response",
+                                                fullResponse, // or parsed JSON object
+                                                Instant.now().toEpochMilli()
+                                        )
+                                );
+
+                                return conversationSessionService.writeConversation(userId, sessionId, conversation);
+                            });
+
+                    saveToRedis.subscribe();
 
                     return ResponseEntity.ok()
                             .header("X-Session-Id", sessionId)
                             .contentType(MediaType.TEXT_EVENT_STREAM)
-                            .body(eventStream);
+                            .body(sharedStream);
                 });
+    }
+
+    private Flux<String> mockOpenAiResponseWebSearch() {
+        return Flux.just("Hello", "world", "test", "done")
+                .delayElements(Duration.of(1000, ChronoUnit.MILLIS));
     }
 
     private String createPromptForLoadNextResultsRequest() {

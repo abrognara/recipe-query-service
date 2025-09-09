@@ -59,13 +59,21 @@
 			<artifactId>spring-ai-openai-spring-boot-starter</artifactId>
 			<version>${spring-ai.version}</version>
 		</dependency>
+		<!--	Need this library for parsing instant into json 	-->
+		<!--	version 2.18.3 matches spring starter parent 3.4.5	-->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>2.18.3</version>
 		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-oauth2-client</artifactId>-->
+<!--		</dependency>-->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+			<groupId>redis.clients</groupId>
+			<artifactId>jedis</artifactId>
+			<version>5.1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
