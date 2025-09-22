@@ -15,6 +15,7 @@ public class Conversation {
 
     private List<Message> conversation = new ArrayList<>();
     private long createdAt;
+    private String openAiRequestId;
 
     @Getter
     @Setter

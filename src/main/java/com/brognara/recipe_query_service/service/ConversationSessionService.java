@@ -39,7 +39,8 @@ public class ConversationSessionService {
                 List.of(
                         new Conversation.Message("prompt", userPrompt, Instant.now().toEpochMilli())
                 ),
-                Instant.now().toEpochMilli()
+                Instant.now().toEpochMilli(),
+                null
         );
 
         log.info("REDIS Create Conversation ; userId={} ; convoId={} ; convo={}",
@@ -77,6 +78,19 @@ public class ConversationSessionService {
             String json = jedis.get(k);
             return json != null ? objectMapper.readValue(json, Conversation.class) : null;
         });
+    }
+
+    public Mono<String> addFirstResponseMessage(final String userId, final String convoId,
+                                                final String openAiRequestId, final Conversation.Message message) {
+        return getConversation(userId, convoId)
+                .flatMap(convo -> {
+                    // TODO handle getConversation() returns null
+                    convo.setOpenAiRequestId(openAiRequestId);
+                    convo.getConversation().add(message);
+                    log.info("REDIS Add First Response Message ; userId={} ; convoId={} ; convo={}",
+                            userId, convoId, convo);
+                    return writeConversation(userId, convoId, convo);
+                });
     }
 
     public Mono<String> addMessage(String userId, String convoId, Conversation.Message message) {

@@ -24,7 +24,7 @@ public class OpenAiResponsesApiEventParser {
         this.objectMapper = objectMapper;
     }
 
-    public Flux<String> parseEvent(final String appRequestId, final String sessionId, final String jsonResponse) {
+    public Flux<String> parseEvent(final String appRequestId, final String jsonResponse) {
         JsonNode jsonRoot;
         try {
 //            log.info("Parsing response: {}", jsonResponse);
@@ -40,9 +40,10 @@ public class OpenAiResponsesApiEventParser {
         switch (responseType) {
             case RESPONSE_CREATED:
                 final String openAiRequestId = jsonRoot.get("response").get("id").asText();
-                recipeQuerySessionService.updatePrevOpenAiRequestId(sessionId, openAiRequestId);
                 log.info("openAiRequestId={}", openAiRequestId);
-                return Flux.empty();
+                return Flux.just(
+                        String.format("OPENAI_REQUEST_ID %s", openAiRequestId)
+                );
 //            case RESPONSE_OUTPUT_TEXT_DELTA:
 //                final String outputTextDelta = jsonRoot.get("delta").asText();
             case RESPONSE_CONTENT_PART_DONE:
@@ -50,7 +51,7 @@ public class OpenAiResponsesApiEventParser {
                 log.info("{}", outputText);
                 return Flux.just(outputText);
             default:
-                log.info("Unmatched event: {}", responseType);
+//                log.info("Unmatched event: {}", responseType);
                 return Flux.empty();
         }
     }
