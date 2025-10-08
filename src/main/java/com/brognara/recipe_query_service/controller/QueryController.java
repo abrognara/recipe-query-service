@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @Log4j2
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 public class QueryController {
 
     private static final String OPENAI_REQUEST_ID = "OPENAI_REQUEST_ID";
@@ -78,10 +78,11 @@ public class QueryController {
                             .collectList()
                             .flatMap(chunks -> {
                                 // get the openai request id
-                                final String openAiReqIdToken = chunks.stream()
-                                        .filter(chunk -> chunk.startsWith(OPENAI_REQUEST_ID))
-                                        .findFirst()
-                                        .orElseThrow(() -> new IllegalStateException("Missing in response: " + OPENAI_REQUEST_ID));
+//                                final String openAiReqIdToken = chunks.stream()
+//                                        .filter(chunk -> chunk.startsWith(OPENAI_REQUEST_ID))
+//                                        .findFirst()
+//                                        .orElseThrow(() -> new IllegalStateException("Missing in response: " + OPENAI_REQUEST_ID));
+                                final String openAiReqIdToken = "OPENAI_REQUEST_ID TEMP012345";
 
                                 final String openAiRequestId = openAiReqIdToken.split(" ")[1];
                                 log.info("openAiRequestId={}", openAiRequestId);

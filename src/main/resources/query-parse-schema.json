@@ -1,0 +1,100 @@
+{
+  "name": "recipe_query_parse",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "errors": {
+        "type": "array",
+        "description": "A list of error messages related to the recipe query.",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "dishType": {
+        "type": "string",
+        "description": "The type of dish requested (e.g. beef stew, pasta, salad).",
+        "minLength": 1
+      },
+      "appliances": {
+        "type": "object",
+        "description": "Kitchen appliances mentioned or required for the dish.",
+        "properties": {
+          "includes": {
+            "type": "array",
+            "description": "List of appliances that must be included.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "excludes": {
+            "type": "array",
+            "description": "List of appliances that must be excluded.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "includes",
+          "excludes"
+        ],
+        "additionalProperties": false
+      },
+      "ingredients": {
+        "type": "object",
+        "description": "Ingredients mentioned for inclusion or exclusion.",
+        "properties": {
+          "includes": {
+            "type": "array",
+            "description": "List of ingredients that must be included.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "excludes": {
+            "type": "array",
+            "description": "List of ingredients that must be excluded.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "includes",
+          "excludes"
+        ],
+        "additionalProperties": false
+      },
+      "nutrition": {
+        "type": "array",
+        "description": "Nutrition details or requests (e.g. low sodium, high protein).",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "cuisineTypes": {
+        "type": "array",
+        "description": "Cuisine type(s) requested (e.g. Italian, French, Japanese).",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "required": [
+      "dishType",
+      "appliances",
+      "ingredients",
+      "nutrition",
+      "cuisineTypes"
+    ],
+    "additionalProperties": false
+  },
+  "strict": false
+}
