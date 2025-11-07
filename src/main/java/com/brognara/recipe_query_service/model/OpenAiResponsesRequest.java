@@ -4,13 +4,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @Builder
 @Getter
 @Setter
-public class OpenAiApiRequest {
+public class OpenAiResponsesRequest {
     private String model;
     private List<Input> inputList;
     private Text text;
@@ -87,11 +88,21 @@ public class OpenAiApiRequest {
                                         )
                                 )
                         ).toList(),
-                "text", Map.of("format", text.getFormat()), // format = the json schema obj
-                "tools", tools.stream().map(tool -> Map.of("type", tool.asText())).toList(),
-                "tool_choice", toolChoice.asText(),
                 "stream", stream
         ));
+
+        // default is '{ "type": "text" }' but this field is for json schema obj format
+        if (text != null) {
+            body.put("text", Map.of("format", text.getFormat())); // format = the json schema obj
+        }
+
+        if (tools != null) {
+            body.put("tools", tools.stream().map(tool -> Map.of("type", tool.asText())).toList());
+        }
+
+        if (toolChoice != null) {
+            body.put("tool_choice", toolChoice.asText());
+        }
 
         if (previousResponseId != null) {
             body.put("previous_response_id", previousResponseId);

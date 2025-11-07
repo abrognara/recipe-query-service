@@ -2,11 +2,7 @@ package com.brognara.recipe_query_service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,16 +12,12 @@ class OpenAiResponsesApiEventParserTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Mock
-    private RecipeQuerySessionService recipeQuerySessionService;
-
     private OpenAiResponsesApiEventParser eventParser;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         eventParser = new OpenAiResponsesApiEventParser(
-                recipeQuerySessionService,
                 objectMapper
         );
     }

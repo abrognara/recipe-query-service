@@ -14,13 +14,10 @@ import static com.brognara.recipe_query_service.model.ResponsesApiEventType.*;
 @Service
 public class OpenAiResponsesApiEventParser {
 
-    private final RecipeQuerySessionService recipeQuerySessionService;
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public OpenAiResponsesApiEventParser(
-            RecipeQuerySessionService recipeQuerySessionService, final ObjectMapper objectMapper) {
-        this.recipeQuerySessionService = recipeQuerySessionService;
+    public OpenAiResponsesApiEventParser(final ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 

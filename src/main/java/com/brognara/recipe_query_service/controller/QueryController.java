@@ -1,6 +1,7 @@
 package com.brognara.recipe_query_service.controller;
 
 import com.brognara.recipe_query_service.model.Conversation;
+import com.brognara.recipe_query_service.model.RecipeResearchResponse;
 import com.brognara.recipe_query_service.service.*;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 @Log4j2
@@ -22,34 +24,72 @@ public class QueryController {
 
     private static final String OPENAI_REQUEST_ID = "OPENAI_REQUEST_ID";
 
-    private final OpenAiResponsesApiService openAiResponsesApiService;
-    private final RecipeQuerySessionService recipeQuerySessionService;
+    private final OpenAiResponsesService openAiResponsesService;
     private final ConversationSessionService conversationSessionService;
+    private final PreProcessingService preProcessingService;
+    private final OpenAiEmbeddingService openAiEmbeddingService;
+    private final RecipeResearchService recipeResearchService;
+    private final VectorDbService vectorDbService;
+    private final ResultsRerankService resultsRerankService;
 
     @Autowired
     public QueryController(
-            RequestValidatorService validatorService, PantryService pantryService,
-            OpenAiResponsesApiService openAiResponsesApiService, RecipeQuerySessionService recipeQuerySessionService, ConversationSessionService conversationSessionService
+            OpenAiResponsesService openAiResponsesService, ConversationSessionService conversationSessionService, PreProcessingService preProcessingService, OpenAiEmbeddingService openAiEmbeddingService, RecipeResearchService recipeResearchService, VectorDbService vectorDbService, ResultsRerankService resultsRerankService
     ) {
-        this.openAiResponsesApiService = openAiResponsesApiService;
-        this.recipeQuerySessionService = recipeQuerySessionService;
+        this.openAiResponsesService = openAiResponsesService;
         this.conversationSessionService = conversationSessionService;
+        this.preProcessingService = preProcessingService;
+        this.openAiEmbeddingService = openAiEmbeddingService;
+        this.recipeResearchService = recipeResearchService;
+        this.vectorDbService = vectorDbService;
+        this.resultsRerankService = resultsRerankService;
     }
 
-    @PostMapping(value = "/query/standard-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> standardTest(
-            @RequestBody final String userPrompt,
-            @RequestHeader("X-User-Id") final String userId,
-            @RequestHeader("X-User-Roles") final String userRoles
-    ) {
-        final String requestId = UUID.randomUUID().toString();
-        return recipeQuerySessionService.createSession(userId, userPrompt)
-                .flatMapMany(sessionId -> {
-                    log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
-                            requestId, sessionId, userId);
-                    return openAiResponsesApiService.getOpenAiResponseStandard(requestId, userPrompt);
-                });
+    // ##################### TEST METHODS #####################
+
+    @GetMapping("/test-embed")
+    public Mono<String> testEmbedPreprocessedQuery(@RequestBody final String userPrompt) {
+        final String requestId = "1234";
+        return preProcessingService.preProcessQuery(requestId, userPrompt)
+                .flatMap(preProcessedQuery -> openAiEmbeddingService.createVectorEmbedding(requestId, preProcessedQuery))
+                .map(embedding -> "success");
     }
+
+    @GetMapping(value = "/test-find-recipes-summarize", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> testFindRecipesSummarize(@RequestBody final String userPrompt) {
+        final String requestId = "1234";
+        final String enhancedPrompt = "Find 20 recipes for this recipe: " + userPrompt; // TODO simulate preprocessed prompt
+        return openAiResponsesService.getOpenAiResponseWebSearch(requestId, enhancedPrompt)
+                .flatMap(recipeData -> preProcessingService.preProcessRecipeDataEnhanced(requestId, recipeData));
+    }
+
+    @PostMapping("/test-research")
+    public Mono<ResponseEntity<Object>> testResearchRecipes(@RequestBody final String userPrompt) {
+        final String requestId = "1234";
+        return Mono.zip(
+                openAiEmbeddingService.createVectorEmbedding(requestId, userPrompt),
+                recipeResearchService.researchRecipes(requestId, userPrompt)
+        )
+                .flatMap(responses -> {
+                    final List<Double> userQueryEmbedding = responses.getT1();
+                    final RecipeResearchResponse recipeResearchResponse = responses.getT2();
+                    return Flux.fromIterable(recipeResearchResponse.getRecipes())
+                            .flatMap(recipe ->
+                                    openAiEmbeddingService.createVectorEmbedding(requestId, recipe.getDescription())
+                                            .flatMap(recipeEmbedding -> vectorDbService.upsert(recipe, recipeEmbedding))
+                            )
+                            .then(
+                                    // defer() waits for all items to be processed in the flux
+                                    Mono.defer(() -> vectorDbService.query(userQueryEmbedding))
+                            )
+                            .flatMap(resultsRerankService::rerankResults);
+                })
+                .map(ResponseEntity::ok);
+    }
+
+    // ##################### END TEST METHODS #####################
+
+
 
     @PostMapping(value = "/query/web-search-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Mono<ResponseEntity<Flux<String>>> webSearchTest(
@@ -65,10 +105,11 @@ public class QueryController {
                     log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
                             requestId, sessionId, userId);
 
-                    // TODO enhance new user query if needed
+                    preProcessingService.preProcessQuery(requestId, userPrompt)
+                            .flatMap(preProcessedQuery -> openAiEmbeddingService.createVectorEmbedding(requestId, preProcessedQuery));
 
                     final Flux<String> eventStream =
-                            openAiResponsesApiService.getOpenAiResponseWebSearch(requestId, userPrompt);
+                            openAiResponsesService.getOpenAiResponseWebSearch(requestId, userPrompt);
 //                            mockOpenAiResponseWebSearch();
 
                     // Share the flux between "stream to client" and "aggregate for saving"
@@ -135,7 +176,7 @@ public class QueryController {
                     // TODO enhance new user query if needed
 
                     final Flux<String> eventStream =
-                            openAiResponsesApiService.getOpenAiResponseWebSearchNextResults(
+                            openAiResponsesService.getOpenAiResponseWebSearchNextResults(
                             requestId, conversation.getOpenAiRequestId(), userPrompt);
 //                            mockOpenAiResponseWebSearch();
 

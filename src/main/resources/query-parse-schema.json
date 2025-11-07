@@ -1,5 +1,7 @@
 {
   "name": "recipe_query_parse",
+  "type": "json_schema",
+  "strict": false,
   "schema": {
     "type": "object",
     "properties": {
@@ -95,6 +97,5 @@
       "cuisineTypes"
     ],
     "additionalProperties": false
-  },
-  "strict": false
+  }
 }

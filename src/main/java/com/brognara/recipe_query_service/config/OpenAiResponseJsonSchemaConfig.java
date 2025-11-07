@@ -24,6 +24,11 @@ public class OpenAiResponseJsonSchemaConfig {
         return loadJsonSchema("query-parse-schema.json");
     }
 
+    @Bean
+    public Object recipeResearchJsonSchema() {
+        return loadJsonSchema("recipe-research-schema.json");
+    }
+
     private Object loadJsonSchema(final String jsonSchemaFilename) {
         try {
             return objectMapper.readValue(
