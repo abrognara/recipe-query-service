@@ -1,5 +1,6 @@
 package com.brognara.recipe_query_service.service;
 
+import com.brognara.recipe_query_service.model.RecipeFilters;
 import com.brognara.recipe_query_service.model.RecipeResearchResponse;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,9 +8,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,9 +29,13 @@ public class VectorDbServiceImpl implements VectorDbService {
         this.upstashVectorClient = upstashVectorClient;
     }
 
-    public Mono<Void> upsert(final RecipeResearchResponse.Recipe recipe, final List<Double> embedding) {
+    public Mono<Void> upsert(
+            final RecipeResearchResponse.Recipe recipe,
+            final List<Double> embedding,
+            final RecipeFilters recipeMetadataFilters
+    ) {
         final Map<String, Object> upsertRequestBody = Map.of(
-                "id", "v-" + UUID.randomUUID().toString(),
+                "id", "v-" + UUID.randomUUID(),
                 "vector", embedding,
                 "metadata", buildRecipeMetadata(recipe)
         );
@@ -59,23 +66,26 @@ public class VectorDbServiceImpl implements VectorDbService {
         return Map.of(
                 "url", recipe.getUrl(),
                 "description", recipe.getDescription(),
-                "details", Map.of(
-                        "dishType", recipe.getDetails().getDishType(),
-                        "appliances", recipe.getDetails().getAppliances(),
-                        "ingredients", recipe.getDetails().getIngredients(),
-                        "nutrition", recipe.getDetails().getNutrition(),
-                        "cuisineTypes", recipe.getDetails().getCuisineTypes()
-                )
+                "filters", recipe.getFilters().asMap()
         );
     }
 
-    public Mono<List<RecipeResearchResponse.Recipe>> query(final List<Double> vector) {
-        // TODO add metadata filter
-        Map<String, Object> queryRequestBody = Map.of(
-                "topK", 5,
+    public Mono<List<RecipeResearchResponse.Recipe>> query(
+            final List<Double> vector,
+            final RecipeFilters userQueryMetadataFilters
+    ) {
+        Map<String, Object> queryRequestBody = new java.util.HashMap<>(Map.of(
+                "topK", 8,
                 "vector", vector,
                 "includeMetadata", true
-        );
+        ));
+
+        final String metadataFiltersStr = buildMetadataFiltersString(userQueryMetadataFilters);
+        if (StringUtils.hasText(metadataFiltersStr)) {
+            queryRequestBody.put("filter", metadataFiltersStr);
+        }
+
+        log.info("vector db query request body: {}", queryRequestBody);
 
         return upstashVectorClient.post()
                 .uri("/query")
@@ -109,22 +119,75 @@ public class VectorDbServiceImpl implements VectorDbService {
 
     }
 
-    private RecipeResearchResponse.Recipe parseMetadataToRecipe(final Map metadata) {
-        Map details = (Map) metadata.get("details");
-        return RecipeResearchResponse.Recipe
-                .builder()
+    private RecipeResearchResponse.Recipe parseMetadataToRecipe(Map metadata) {
+        if (metadata == null) return null;
+
+        return RecipeResearchResponse.Recipe.builder()
                 .url((String) metadata.get("url"))
                 .description((String) metadata.get("description"))
-                .details(
-                        RecipeResearchResponse.Details.builder()
-                                .appliances((List<String>) details.get("appliances"))
-                                .cuisineTypes((List<String>) details.get("cuisineTypes"))
-                                .ingredients((List<String>) details.get("ingredients"))
-                                .nutrition((List<String>) details.get("nutrition"))
-                                .dishType((String) details.get("dishType"))
-                                .build()
-                )
+                .filters(RecipeFilters.fromMap((Map<String, Object>) metadata.get("filters")))
                 .build();
+    }
+
+    // TODO impl the build filters string for query
+    private String buildMetadataFiltersString(final RecipeFilters recipeFilters) {
+        final List<String> dbQueryFilters = new LinkedList<>();
+
+        // include appliances
+        addFilterForArrayContains(
+                recipeFilters.getIncludeAppliances(),
+                "filters.includeAppliances",
+                dbQueryFilters
+        );
+
+        // exclude appliances
+        addFilterForArrayContains(
+                recipeFilters.getExcludeAppliances(),
+                "filters.excludeAppliances",
+                dbQueryFilters
+        );
+
+        // TODO how to interpret total time? i.e. less than X minutes or more than X minutes?
+        // total time minutes
+//        final double ttm = recipeFilters.getTotalTimeMinutes();
+//        if (ttm > 0.0) {
+//            dbQueryFilters.add(
+//                    String.format("filters.totalTimeMinutes = %s", ttm)
+//            );
+//        }
+
+        // TODO how to interpret servings? i.e. less than X servings or more than X servings?
+        // servings
+//        final int servings = recipeFilters.getServings();
+//        if (servings > 0) {
+//            dbQueryFilters.add(
+//                    String.format("filters.servings = %s", servings)
+//            );
+//        }
+
+        // dietary restrictions
+        final List<String> dtryRstrs = recipeFilters.getDietaryRestrictions();
+        if (dtryRstrs != null && !dtryRstrs.isEmpty()) {
+            dbQueryFilters.add(
+                    dtryRstrs.stream()
+                            .map(elm -> String.format("filters.dietaryRestrictions CONTAINS '%s'", elm))
+                            .collect(Collectors.joining(" OR "))
+            );
+        }
+
+        return String.join(" AND ", dbQueryFilters);
+    }
+
+    private void addFilterForArrayContains(
+            final List<String> arrFilter, final String metadataKey, final List<String> dbQueryFilters
+    ) {
+        if (arrFilter != null && !arrFilter.isEmpty()) {
+            dbQueryFilters.add(
+                    arrFilter.stream()
+                            .map(elm -> String.format("%s CONTAINS '%s'", metadataKey, elm))
+                            .collect(Collectors.joining(" OR "))
+            );
+        }
     }
 
 }

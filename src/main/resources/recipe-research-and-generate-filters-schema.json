@@ -1,0 +1,211 @@
+{
+  "name": "recipes",
+  "type": "json_schema",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "recipes": {
+        "type": "array",
+        "description": "A list of recipe objects, each with a url, description, and detailed attributes.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The recipe's canonical URL.",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string",
+              "description": "A plain-language description of the recipe.",
+              "minLength": 1
+            },
+            "filters": {
+              "$ref": "#/$defs/recipe_filters"
+            }
+          },
+          "required": [
+            "url",
+            "description",
+            "filters"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "recipes"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+      "recipe_filters": {
+        "type": "object",
+        "properties": {
+          "cuisine": {
+            "type": "string",
+            "description": "The cuisine type, e.g. 'Mediterranean'.",
+            "minLength": 1
+          },
+          "mealType": {
+            "type": "string",
+            "description": "The type of meal, e.g. 'dinner'.",
+            "minLength": 1
+          },
+          "course": {
+            "type": "string",
+            "description": "The course of the meal, e.g. 'main'.",
+            "minLength": 1
+          },
+          "includeIngredients": {
+            "type": "array",
+            "description": "List of ingredients to include.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "excludeIngredients": {
+            "type": "array",
+            "description": "List of ingredients to exclude.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "includeAppliances": {
+            "type": "array",
+            "description": "List of appliances to include.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "excludeAppliances": {
+            "type": "array",
+            "description": "List of appliances to exclude.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "totalTimeMinutes": {
+            "type": "number",
+            "description": "Total cooking time in minutes.",
+            "minimum": 1
+          },
+          "servings": {
+            "type": "number",
+            "description": "Number of servings.",
+            "minimum": 1
+          },
+          "prepDifficulty": {
+            "type": "string",
+            "description": "Preparation difficulty, e.g. 'easy'.",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ]
+          },
+          "nutritionGoals": {
+            "type": "object",
+            "description": "User's nutritional goals for the meal.",
+            "properties": {
+              "protein": {
+                "type": "string",
+                "description": "Protein goal, e.g. 'high'.",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "carbs": {
+                "type": "string",
+                "description": "Carbohydrate goal, e.g. 'low'.",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "calories": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Calorie goal (optional)."
+              }
+            },
+            "required": [
+              "protein",
+              "carbs",
+              "calories"
+            ],
+            "additionalProperties": false
+          },
+          "dietaryRestrictions": {
+            "type": "array",
+            "description": "List of dietary restrictions.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "flavorProfile": {
+            "type": "array",
+            "description": "List of flavor profiles.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "occasion": {
+            "type": "array",
+            "description": "Occasion(s) for the meal.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "tags": {
+            "type": "array",
+            "description": "Additional tags or keywords.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "cuisine",
+          "mealType",
+          "course",
+          "includeIngredients",
+          "excludeIngredients",
+          "includeAppliances",
+          "excludeAppliances",
+          "totalTimeMinutes",
+          "servings",
+          "prepDifficulty",
+          "nutritionGoals",
+          "dietaryRestrictions",
+          "flavorProfile",
+          "occasion",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

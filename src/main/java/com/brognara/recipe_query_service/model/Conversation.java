@@ -13,6 +13,8 @@ import java.util.List;
 @ToString
 public class Conversation {
 
+    // TODO add a conversationSummary which captures a summary of the convo for UI friendliness
+
     private List<Message> conversation = new ArrayList<>();
     private long createdAt;
     private String openAiRequestId;

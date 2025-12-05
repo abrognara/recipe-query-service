@@ -25,12 +25,13 @@ public class OpenAiResponsesService {
 
     private final WebClient openAiWebClient;
     private final OpenAiResponsesApiEventParser eventParser;
-    private final Object recipeQueryResultsJsonSchema;
+    private final Map<String, Object> recipeQueryResultsJsonSchema;
 
     @Autowired
     public OpenAiResponsesService(
             WebClient openAiWebClient, OpenAiResponsesApiEventParser eventParser,
-            Object recipeQueryResultsJsonSchema, Object recipeQueryParseJsonSchema) {
+            Map<String, Object> recipeQueryResultsJsonSchema,
+            Map<String, Object> recipeQueryParseJsonSchema) {
         this.openAiWebClient = openAiWebClient;
         this.eventParser = eventParser;
         this.recipeQueryResultsJsonSchema = recipeQueryResultsJsonSchema;
@@ -77,6 +78,7 @@ public class OpenAiResponsesService {
     }
 
     public WebClient.ResponseSpec callOpenAiResponses(final String appRequestId, final OpenAiResponsesRequest request) {
+//        log.info("[DEBUG] request {}", request.getBody());
         return openAiWebClient.post()
                 .uri("/responses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -94,6 +96,7 @@ public class OpenAiResponsesService {
     // this method is currently being used by non-streaming calls to responses
     // TODO use the generic version or convert to Map
     public Mono<String> callOpenAiResponsesReturnsString(final String appRequestId, final OpenAiResponsesRequest request) {
+//        log.info("[DEBUG] request {}", request.getBody());
         return openAiWebClient.post()
                 .uri("/responses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -102,7 +105,7 @@ public class OpenAiResponsesService {
                 .onStatus(HttpStatusCode::isError, clientResponse ->
                         clientResponse.bodyToMono(String.class)
                                 .flatMap(err -> {
-                                    log.info("OpenAi responses api request failed: {}", err);
+                                    log.error("OpenAi responses api request failed: {}", err);
                                     return Mono.error(new RuntimeException("OpenAi responses api request failed: " + err));
                                 })
                 )

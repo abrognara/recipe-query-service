@@ -21,18 +21,7 @@ public class RecipeResearchResponse {
     public static class Recipe {
         private String url;
         private String description;
-        private Details details;
+        private RecipeFilters filters;
     }
 
-    @Getter
-    @Setter
-    @ToString
-    @Builder
-    public static class Details {
-        private String dishType;
-        private List<String> appliances;
-        private List<String> ingredients;
-        private List<String> nutrition;
-        private List<String> cuisineTypes;
-    }
 }

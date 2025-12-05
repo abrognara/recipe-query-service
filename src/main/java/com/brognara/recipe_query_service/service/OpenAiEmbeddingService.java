@@ -28,6 +28,7 @@ public class OpenAiEmbeddingService {
     }
 
     public Mono<List<Double>> createVectorEmbedding(final String appRequestId, final String text) {
+        log.info("Creating vector embedding");
         final OpenAiEmbeddingRequest embeddingRequest = OpenAiEmbeddingRequest.builder()
                 .model(model)
                 .input(text)
