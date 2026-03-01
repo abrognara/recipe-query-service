@@ -24,14 +24,10 @@ public class OpenAiResponsesService {
     private String model;
 
     private final WebClient openAiWebClient;
-    private final Map<String, Object> recipeQueryResultsJsonSchema;
 
     @Autowired
-    public OpenAiResponsesService(
-            WebClient openAiWebClient, Map<String, Object> recipeQueryResultsJsonSchema,
-            Map<String, Object> recipeQueryParseJsonSchema) {
+    public OpenAiResponsesService(WebClient openAiWebClient) {
         this.openAiWebClient = openAiWebClient;
-        this.recipeQueryResultsJsonSchema = recipeQueryResultsJsonSchema;
     }
 
     public WebClient.ResponseSpec callOpenAiResponses(final String appRequestId, final OpenAiResponsesRequest request) {
@@ -48,24 +44,5 @@ public class OpenAiResponsesService {
                                     return Mono.error(new RuntimeException("OpenAi responses api request failed: " + err));
                                 })
                 );
-    }
-
-    // this method is currently being used by non-streaming calls to responses
-    // TODO use the generic version or convert to Map
-    public Mono<String> callOpenAiResponsesReturnsString(final String appRequestId, final OpenAiResponsesRequest request) {
-//        log.info("[DEBUG] request {}", request.getBody());
-        return openAiWebClient.post()
-                .uri("/responses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request.getBody())
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, clientResponse ->
-                        clientResponse.bodyToMono(String.class)
-                                .flatMap(err -> {
-                                    log.error("OpenAi responses api request failed: {}", err);
-                                    return Mono.error(new RuntimeException("OpenAi responses api request failed: " + err));
-                                })
-                )
-                .bodyToMono(String.class);
     }
 }
