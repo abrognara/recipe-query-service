@@ -1,13 +1,11 @@
 {
   "name": "recipes",
-  "type": "json_schema",
-  "strict": true,
   "schema": {
     "type": "object",
     "properties": {
       "recipes": {
         "type": "array",
-        "description": "A list of recipe objects, each with a url, description, and detailed attributes.",
+        "description": "A list of recipe objects, each with a url, description, recipeName, imgUrl, and detailed attributes.",
         "items": {
           "type": "object",
           "properties": {
@@ -21,6 +19,16 @@
               "description": "A plain-language description of the recipe.",
               "minLength": 1
             },
+            "recipeName": {
+              "type": "string",
+              "description": "The display name/title of the recipe.",
+              "minLength": 1
+            },
+            "imgUrl": {
+              "type": "string",
+              "description": "URL for a main image of the recipe.",
+              "minLength": 1
+            },
             "filters": {
               "$ref": "#/$defs/recipe_filters"
             }
@@ -28,6 +36,8 @@
           "required": [
             "url",
             "description",
+            "recipeName",
+            "imgUrl",
             "filters"
           ],
           "additionalProperties": false
@@ -207,5 +217,6 @@
         "additionalProperties": false
       }
     }
-  }
+  },
+  "strict": true
 }

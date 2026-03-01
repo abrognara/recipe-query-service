@@ -24,57 +24,14 @@ public class OpenAiResponsesService {
     private String model;
 
     private final WebClient openAiWebClient;
-    private final OpenAiResponsesApiEventParser eventParser;
     private final Map<String, Object> recipeQueryResultsJsonSchema;
 
     @Autowired
     public OpenAiResponsesService(
-            WebClient openAiWebClient, OpenAiResponsesApiEventParser eventParser,
-            Map<String, Object> recipeQueryResultsJsonSchema,
+            WebClient openAiWebClient, Map<String, Object> recipeQueryResultsJsonSchema,
             Map<String, Object> recipeQueryParseJsonSchema) {
         this.openAiWebClient = openAiWebClient;
-        this.eventParser = eventParser;
         this.recipeQueryResultsJsonSchema = recipeQueryResultsJsonSchema;
-    }
-
-    public Flux<String> getOpenAiResponseWebSearch(final String appRequestId, final String userPrompt) {
-        final Map<String, Object> requestBody = OpenAiResponsesRequest.builder()
-                .model(model)
-                .inputList(
-                        List.of(
-                                OpenAiResponsesRequest.Input.builder()
-                                        .inputRole(OpenAiResponsesRequest.InputRole.SYSTEM)
-                                        .inputContent(new OpenAiResponsesRequest.InputContent(SYSTEM_TEXT_FOR_PROMPT))
-                                        .build(),
-                                OpenAiResponsesRequest.Input.builder()
-                                        .inputRole(OpenAiResponsesRequest.InputRole.USER)
-                                        .inputContent(new OpenAiResponsesRequest.InputContent(userPrompt))
-                                        .build()
-                        )
-                )
-                .text(
-                        OpenAiResponsesRequest.Text.builder()
-                        .format(recipeQueryResultsJsonSchema)
-                        .build()
-                )
-                .tools(
-                        List.of(OpenAiResponsesRequest.Tool.WEB_SEARCH)
-                )
-                .toolChoice(OpenAiResponsesRequest.ToolChoice.REQUIRED)
-                .stream(true)
-                .build()
-                .getBody();
-        return getOpenAiResponseWebSearch(appRequestId, requestBody);
-    }
-
-    // TODO remove this (10/29/25)
-    public Flux<String> getOpenAiResponseWebSearchNextResults(
-            final String appRequestId, final String prevOpenAiResponseId, final String userPrompt) {
-//        final Map<String, Object> requestBody = new HashMap<>(createStandardRequestBody(
-//                userPrompt, "recipes-overview-response-schema-web-search.json"));
-//        requestBody.put("previous_response_id", prevOpenAiResponseId);
-//        return getOpenAiResponseWebSearch(appRequestId, requestBody);
-        return getOpenAiResponseWebSearch(appRequestId, userPrompt);
     }
 
     public WebClient.ResponseSpec callOpenAiResponses(final String appRequestId, final OpenAiResponsesRequest request) {
@@ -110,23 +67,5 @@ public class OpenAiResponsesService {
                                 })
                 )
                 .bodyToMono(String.class);
-    }
-
-    // this method is currently being used by streaming calls to responses
-    private Flux<String> getOpenAiResponseWebSearch(final String appRequestId, final Map<String, Object> requestBody) {
-        return openAiWebClient.post()
-                .uri("/responses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, clientResponse ->
-                        clientResponse.bodyToMono(String.class)
-                                .flatMap(err -> {
-                                    log.info("OpenAi request failed: {}", err);
-                                    return Mono.error(new RuntimeException("OpenAi request failed: " + err));
-                                })
-                )
-                .bodyToFlux(String.class)
-                .flatMap(rawResponse -> eventParser.parseEvent(appRequestId, rawResponse));
     }
 }

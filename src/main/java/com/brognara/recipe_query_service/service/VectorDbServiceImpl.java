@@ -64,6 +64,8 @@ public class VectorDbServiceImpl implements VectorDbService {
 
     private Map<String, Object> buildRecipeMetadata(final RecipeResearchResponse.Recipe recipe) {
         return Map.of(
+                "recipeName", recipe.getRecipeName(),
+                "imgUrl", recipe.getImgUrl(),
                 "url", recipe.getUrl(),
                 "description", recipe.getDescription(),
                 "filters", recipe.getFilters().asMap()
@@ -125,6 +127,8 @@ public class VectorDbServiceImpl implements VectorDbService {
         return RecipeResearchResponse.Recipe.builder()
                 .url((String) metadata.get("url"))
                 .description((String) metadata.get("description"))
+                .imgUrl((String) metadata.get("imgUrl"))
+                .recipeName((String) metadata.get("recipeName"))
                 .filters(RecipeFilters.fromMap((Map<String, Object>) metadata.get("filters")))
                 .build();
     }

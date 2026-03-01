@@ -48,14 +48,6 @@ public class ConversationSessionService {
         return writeConversation(userId, convoId, convo);
     }
 
-    // add next user prompt to conversation (message type = prompt)
-    public Mono<String> addNextPromptToConversation(final String userId, final String convoId, final String userPrompt) {
-        log.info("REDIS Add Next Prompt To Conversation ; userId={} ; convoId={} ; userPrompt={}",
-                userId, convoId, userPrompt);
-        return addMessage(userId, convoId,
-                new Conversation.Message("prompt", userPrompt, Instant.now().toEpochMilli()));
-    }
-
     // upsert
     public Mono<String> writeConversation(final String userId, final String convoId, final Conversation convo) {
         return Mono.fromCallable(() -> {
@@ -68,6 +60,23 @@ public class ConversationSessionService {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    public Mono<String> createNewOrAddToExistingConvo(
+            final String userId,
+            final String convoId,
+            final String sanitizedMsg
+    ) {
+        if (convoId == null) {
+            return createConversation(userId, sanitizedMsg);
+        } else {
+            addMessage(
+                    userId,
+                    convoId,
+                    new Conversation.Message("prompt", sanitizedMsg, Instant.now().toEpochMilli())
+            );
+            return Mono.just(convoId);
+        }
     }
 
     public Mono<Conversation> getConversation(String userId, String convoId) {
@@ -115,19 +124,6 @@ public class ConversationSessionService {
 
             return convoIdToConversations;
         });
-    }
-
-    public Mono<String> addFirstResponseMessage(final String userId, final String convoId,
-                                                final String openAiRequestId, final Conversation.Message message) {
-        return getConversation(userId, convoId)
-                .flatMap(convo -> {
-                    // TODO handle getConversation() returns null
-                    convo.setOpenAiRequestId(openAiRequestId);
-                    convo.getConversation().add(message);
-                    log.info("REDIS Add First Response Message ; userId={} ; convoId={} ; convo={}",
-                            userId, convoId, convo);
-                    return writeConversation(userId, convoId, convo);
-                });
     }
 
     public Mono<String> addMessage(final String userId, final String convoId, final Conversation.Message message) {

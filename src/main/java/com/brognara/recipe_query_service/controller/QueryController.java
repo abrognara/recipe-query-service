@@ -5,6 +5,7 @@ import com.brognara.recipe_query_service.model.RecipeFilters;
 import com.brognara.recipe_query_service.model.RecipeQueryResponse;
 import com.brognara.recipe_query_service.model.RecipeResearchResponse;
 import com.brognara.recipe_query_service.service.*;
+import jakarta.annotation.Nullable;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -34,10 +35,11 @@ public class QueryController {
     private final RecipeResearchService recipeResearchService;
     private final VectorDbService vectorDbService;
     private final ResultsRerankService resultsRerankService;
+    private final InputSanitizationService inputSanitizationService;
 
     @Autowired
     public QueryController(
-            OpenAiResponsesService openAiResponsesService, ConversationSessionService conversationSessionService, PreProcessingService preProcessingService, OpenAiEmbeddingService openAiEmbeddingService, RecipeResearchService recipeResearchService, VectorDbService vectorDbService, ResultsRerankService resultsRerankService
+            OpenAiResponsesService openAiResponsesService, ConversationSessionService conversationSessionService, PreProcessingService preProcessingService, OpenAiEmbeddingService openAiEmbeddingService, RecipeResearchService recipeResearchService, VectorDbService vectorDbService, ResultsRerankService resultsRerankService, InputSanitizationService inputSanitizationService
     ) {
         this.openAiResponsesService = openAiResponsesService;
         this.conversationSessionService = conversationSessionService;
@@ -46,6 +48,7 @@ public class QueryController {
         this.recipeResearchService = recipeResearchService;
         this.vectorDbService = vectorDbService;
         this.resultsRerankService = resultsRerankService;
+        this.inputSanitizationService = inputSanitizationService;
     }
 
     // ##################### TEST METHODS #####################
@@ -90,11 +93,14 @@ public class QueryController {
                                                     // defer() waits for all items to be processed in the flux
                                                     Mono.defer(() -> vectorDbService.query(userQueryEmbedding, userQueryFilters))
                                             )
-                                            .flatMap(resultsRerankService::rerankResults)
+                                            .flatMap(vectorResults ->
+                                                    resultsRerankService.rerankResults(vectorResults, userQueryFilters))
                                     );
                 })
                 .map(ResponseEntity::ok);
     }
+
+    // ##################### END TEST METHODS #####################
 
     private Mono<Void> forEachRecipeCreateEmbeddingOfDescAndUpsert(
             final String requestId,
@@ -116,193 +122,91 @@ public class QueryController {
             @RequestHeader("X-User-Id") final String userId,
             @RequestHeader("X-User-Roles") final String userRoles
     ) {
+        return handleRecipeQuery(userPrompt, userId, null);
+    }
+
+    @PostMapping("/recipe-query/{chatId}")
+    public Mono<ResponseEntity<RecipeQueryResponse>> recipeQueryWithPrevChat(
+            @RequestBody final String userPrompt,
+            @RequestHeader("X-User-Id") final String userId,
+            @RequestHeader("X-User-Roles") final String userRoles,
+            @PathVariable final String chatId
+    ) {
+        return handleRecipeQuery(userPrompt, userId, chatId);
+    }
+
+    private Mono<ResponseEntity<RecipeQueryResponse>> handleRecipeQuery(
+            final String userPrompt,
+            final String userId,
+            @Nullable final String requestChatId
+    ) {
         final String requestId = UUID.randomUUID().toString();
         final boolean fallbackToWebSearch = true;
 
         // need the convoId later to save recipe response
         final AtomicReference<String> conversationId = new AtomicReference<>();
 
-        return conversationSessionService.createConversation(userId, userPrompt)
-                .flatMap(convoId ->
-                        Mono.zip(
-                                Mono.just(convoId),
-                                preProcessingService.preProcessQuerySemanticMeaning(requestId, userPrompt),
-                                preProcessingService.preProcessQueryGenerateFilters(requestId, userPrompt)
+        return inputSanitizationService.validate(requestId, userPrompt)
+                .flatMap(sanitizedUserPrompt -> conversationSessionService.createNewOrAddToExistingConvo(userId, requestChatId, sanitizedUserPrompt)
+                        .flatMap(convoId ->
+                                Mono.zip(
+                                        Mono.just(convoId),
+                                        preProcessingService.preProcessQuerySemanticMeaning(requestId, sanitizedUserPrompt),
+                                        preProcessingService.preProcessQueryGenerateFilters(requestId, sanitizedUserPrompt)
+                                )
                         )
-                )
-                .flatMap(responses -> {
-                    final String convoId = responses.getT1();
-                    final String userQuerySemanticMeaning = responses.getT2();
-                    final RecipeFilters userQueryMetadataFilters = responses.getT3();
+                        .flatMap(responses -> {
+                            final String convoId = responses.getT1();
+                            final String userQuerySemanticMeaning = responses.getT2();
+                            final RecipeFilters userQueryMetadataFilters = responses.getT3();
 
-                    conversationId.set(convoId);
-                    log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
-                            requestId, convoId, userId);
+                            conversationId.set(convoId);
+                            log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
+                                    requestId, convoId, userId);
 
-                    return openAiEmbeddingService.createVectorEmbedding(requestId, userQuerySemanticMeaning)
-                            .flatMap(userQueryEmbedding ->
-                                    vectorDbService.query(userQueryEmbedding, userQueryMetadataFilters));
-                })
-                .flatMap(resultsRerankService::rerankResults)
-                .flatMap(rankedResults -> {
-                    // TODO check scores of results
-                    // check scores of results, if scores not good enough (below threshold)
-                    // then fallback to web search
+                            return openAiEmbeddingService.createVectorEmbedding(requestId, userQuerySemanticMeaning)
+                                    .flatMap(userQueryEmbedding ->
+                                            vectorDbService.query(userQueryEmbedding, userQueryMetadataFilters))
+                                    .flatMap(vectorResults ->
+                                            resultsRerankService.rerankResults(vectorResults, userQueryMetadataFilters));
+                        })
+                        .flatMap(rankedResults -> {
+                            // TODO check scores of results
+                            // check scores of results, if scores not good enough (below threshold)
+                            // then fallback to web search
 
-                    if (!fallbackToWebSearch) {
-                        return Mono.just(rankedResults);
-                    }
+                            if (!fallbackToWebSearch) {
+                                return Mono.just(rankedResults);
+                            }
 
-                    return recipeResearchService.researchRecipes(requestId, userPrompt)
-                            // upsert the new recipes into the db async and don't wait for response
-                            .doOnNext(resp ->
-                                    forEachRecipeCreateEmbeddingOfDescAndUpsert(requestId, resp)
-                                            .subscribeOn(Schedulers.boundedElastic())
-                                            .subscribe()
-                            )
-                            .map(resp -> {
-                                List<RecipeResearchResponse.Recipe> combined = new ArrayList<>(resp.getRecipes());
-                                combined.addAll(rankedResults);
-                                return combined;
-                            });
-                })
-                .map(recipes -> new Conversation.Message(
-                        "response",
-                        recipes,
-                        Instant.now().toEpochMilli()
-                ))
-                // add the query response object to the db async and don't wait for response
-                .doOnNext(message -> conversationSessionService.addMessage(
-                                userId,
-                                conversationId.get(),
-                                message
-                        )
-                        .subscribeOn(Schedulers.boundedElastic())
-                        .subscribe())
-                .map(message -> ResponseEntity.ok(new RecipeQueryResponse(conversationId.get(), message)));
-    }
-
-    // ##################### END TEST METHODS #####################
-
-
-    @PostMapping(value = "/query/web-search-test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<ResponseEntity<Flux<String>>> webSearchTestStreaming(
-            @RequestBody final String userPrompt,
-            @RequestHeader("X-User-Id") final String userId,
-            @RequestHeader("X-User-Roles") final String userRoles
-    ) {
-        final String requestId = UUID.randomUUID().toString();
-        log.info("[{}] POST /query/web-search-test ; userId={} ; userRoles={}",
-                requestId, userId, userRoles);
-        return conversationSessionService.createConversation(userId, userPrompt)
-                .map(sessionId -> {
-                    log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
-                            requestId, sessionId, userId);
-
-                    preProcessingService.preProcessQuerySemanticMeaning(requestId, userPrompt)
-                            .flatMap(preProcessedQuery -> openAiEmbeddingService.createVectorEmbedding(requestId, preProcessedQuery));
-
-                    final Flux<String> eventStream =
-                            openAiResponsesService.getOpenAiResponseWebSearch(requestId, userPrompt);
-//                            mockOpenAiResponseWebSearch();
-
-                    // Share the flux between "stream to client" and "aggregate for saving"
-                    Flux<String> sharedStream = eventStream.publish().autoConnect(2);
-
-                    Mono<String> saveToRedis = sharedStream
-                            .collectList()
-                            .flatMap(chunks -> {
-                                // get the openai request id
-//                                final String openAiReqIdToken = chunks.stream()
-//                                        .filter(chunk -> chunk.startsWith(OPENAI_REQUEST_ID))
-//                                        .findFirst()
-//                                        .orElseThrow(() -> new IllegalStateException("Missing in response: " + OPENAI_REQUEST_ID));
-                                final String openAiReqIdToken = "OPENAI_REQUEST_ID TEMP012345";
-
-                                final String openAiRequestId = openAiReqIdToken.split(" ")[1];
-                                log.info("openAiRequestId={}", openAiRequestId);
-
-                                // get openai web search response without the openai request id token
-                                final String fullResponse = String.join("",
-                                        chunks.stream().filter(chunk -> !chunk.startsWith(OPENAI_REQUEST_ID)).toList());
-
-                                // TODO: can parse OpenAI response JSON here
-                                final Conversation.Message msg = new Conversation.Message(
-                                        "response",
-                                        fullResponse, // or parsed JSON object
-                                        Instant.now().toEpochMilli()
-                                );
-
-                                return conversationSessionService.addFirstResponseMessage(
-                                        userId, sessionId, openAiRequestId, msg
-                                );
-                            });
-
-                    saveToRedis.subscribe();
-
-                    return ResponseEntity.ok()
-                            .header("X-Session-Id", sessionId)
-                            .contentType(MediaType.TEXT_EVENT_STREAM)
-                            .body(sharedStream);
-                });
-    }
-
-    @PutMapping(value = "/query/web-search-test/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<ResponseEntity<Flux<String>>> recipeQuerySessionNextPrompt(
-            @RequestBody final String userPrompt,
-            @RequestHeader("X-User-Id") final String userId,
-            @RequestHeader("X-User-Roles") final String userRoles,
-            @PathVariable final String sessionId
-    ) {
-        final String requestId = UUID.randomUUID().toString();
-        log.info("[{}] PUT /query/web-search-test/{} ; userId={} ; userRoles={}",
-                requestId, sessionId, userId, userRoles);
-        return conversationSessionService.getConversation(userId, sessionId)
-                .map(conversation -> {
-                    log.info("REQUEST_ID={} ; SESSION_ID={} ; Created session for user {}",
-                            requestId, sessionId, userId);
-
-                    // add new user prompt
-                    conversation.getConversation().add(
-                            new Conversation.Message("prompt", userPrompt, Instant.now().toEpochMilli())
-                    );
-
-                    // TODO enhance new user query if needed
-
-                    final Flux<String> eventStream =
-                            openAiResponsesService.getOpenAiResponseWebSearchNextResults(
-                            requestId, conversation.getOpenAiRequestId(), userPrompt);
-//                            mockOpenAiResponseWebSearch();
-
-                    // Share the flux between "stream to client" and "aggregate for saving"
-                    Flux<String> sharedStream = eventStream.publish().autoConnect(2);
-
-                    Mono<String> saveToRedis = sharedStream
-                            .filter(chunk -> !chunk.startsWith(OPENAI_REQUEST_ID))
-                            .collectList()
-                            .flatMap(chunks -> {
-                                String fullResponse = String.join("", chunks);
-                                // TODO: parse OpenAI response JSON here
-                                conversation.getConversation().add(
-                                        new Conversation.Message(
-                                                "response",
-                                                fullResponse, // or parsed JSON object
-                                                Instant.now().toEpochMilli()
-                                        )
-                                );
-
-                                return conversationSessionService.writeConversation(userId, sessionId, conversation);
-                            });
-
-                    saveToRedis.subscribe();
-
-                    return ResponseEntity.ok()
-                            .header("X-Session-Id", sessionId)
-                            .contentType(MediaType.TEXT_EVENT_STREAM)
-                            .body(
-                                    sharedStream
-                            );
-                });
+                            return recipeResearchService.researchRecipes(requestId, sanitizedUserPrompt)
+                                    // upsert the new recipes into the db async and don't wait for response
+                                    .doOnNext(resp ->
+                                            forEachRecipeCreateEmbeddingOfDescAndUpsert(requestId, resp)
+                                                    .subscribeOn(Schedulers.boundedElastic())
+                                                    .subscribe()
+                                    )
+                                    .map(resp -> {
+                                        List<RecipeResearchResponse.Recipe> combined = new ArrayList<>(resp.getRecipes());
+                                        combined.addAll(rankedResults);
+                                        return combined;
+                                    });
+                        })
+                        .map(recipes -> new Conversation.Message(
+                                "response",
+                                recipes,
+                                Instant.now().toEpochMilli()
+                        ))
+                        // add the query response object to the db async and don't wait for response
+                        .doOnNext(message -> conversationSessionService.addMessage(
+                                        userId,
+                                        conversationId.get(),
+                                        message
+                                )
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .subscribe())
+                        .map(message -> ResponseEntity.ok(new RecipeQueryResponse(conversationId.get(), message)))
+                );
     }
 
 } 

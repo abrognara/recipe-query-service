@@ -20,8 +20,6 @@ import java.util.Map;
 @Service
 public class RecipeResearchService {
 
-    // For the 'filters' field - try your best to populate all filters, but only if you're 100% sure about the accuracy of the data. Otherwise, it's ok to leave fields as null if you're unsure. These filters will be used to search for the recipe, so accuracy and relevancy to data in the webpage is of utmost importance.
-
     private static final String SYSTEM_PROMPT = "You're a recipe research specialist who finds recipes for users based on their query.  Add recipes to the response based on the schema object.  \n" +
             "\n" +
             "For the 'description' field - create a brief description about the recipe that preserves all relevant details about the recipe and accurately capture its semantic meaning. For example, the following query \"give me a mediterranean-inspired pasta dish with chicken, but is also dairy free and high in protein\" would be converted into the following: \"mediterranean high-protein dairy-free pasta with chicken\".\n" +
@@ -97,12 +95,16 @@ public class RecipeResearchService {
         for (JsonNode r : root.get("recipes")) {
             final String url = r.get("url").asText();
             final String description = r.get("description").asText();
+            final String recipeName = r.get("recipeName").asText();
+            final String imgUrl = r.get("imgUrl").asText();
 
             final JsonNode filters = r.get("filters");
             recipes.add(
                     RecipeResearchResponse.Recipe.builder()
                             .url(url)
                             .description(description)
+                            .recipeName(recipeName)
+                            .imgUrl(imgUrl)
                             .filters(
                                     RecipeFilters.builder()
                                             .cuisine(filters.get("cuisine").asText())

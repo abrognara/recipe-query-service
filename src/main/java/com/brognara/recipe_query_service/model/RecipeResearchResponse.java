@@ -21,6 +21,8 @@ public class RecipeResearchResponse {
     public static class Recipe {
         private String url;
         private String description;
+        private String recipeName;
+        private String imgUrl;
         private RecipeFilters filters;
     }
 

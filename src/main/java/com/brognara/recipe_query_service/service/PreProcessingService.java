@@ -54,7 +54,8 @@ public class PreProcessingService {
                 .stream(false)
                 .build();
 
-        return openAiResponsesService.callOpenAiResponsesReturnsString(appRequestId, queryParseRequest)
+        return openAiResponsesService.callOpenAiResponses(appRequestId, queryParseRequest)
+                .bodyToMono(String.class)
                 .doOnNext(response -> log.info("[{}] Successfully parsed semantic meaning query response", appRequestId))
                 .map(this::parseSemanticMeaningStrFromResponse)
                 .doOnNext(querySemanticMeaning -> log.info("Query semantic meaning: {}", querySemanticMeaning));
@@ -132,7 +133,8 @@ public class PreProcessingService {
                 .stream(false)
                 .build();
 
-        return openAiResponsesService.callOpenAiResponsesReturnsString(appRequestId, queryParseRequest)
+        return openAiResponsesService.callOpenAiResponses(appRequestId, queryParseRequest)
+                .bodyToMono(String.class)
                 .doOnNext(responseJson ->
                         log.info("Successful response from responses api for gen filters")
                 )
