@@ -4,66 +4,150 @@
   "strict": true,
   "schema": {
     "type": "object",
-    "required": [
-      "recipes"
-    ],
     "properties": {
-      "recipes": {
+      "recipe_name": {
+        "type": "string",
+        "description": "The name of the recipe"
+      },
+      "description": {
+        "type": "string",
+        "description": "A brief description of the recipe"
+      },
+      "url": {
+        "type": "string",
+        "description": "A web URL for the recipe"
+      },
+      "author": {
+        "type": "string",
+        "description": "The author of the recipe"
+      },
+      "rating": {
+        "type": "number",
+        "description": "Recipe average rating, floating point value"
+      },
+      "number_of_reviews": {
+        "type": "integer",
+        "description": "Total number of user reviews"
+      },
+      "prep_time_mins": {
+        "type": "integer",
+        "description": "Preparation time in minutes"
+      },
+      "cook_time_mins": {
+        "type": "integer",
+        "description": "Cooking time in minutes"
+      },
+      "number_of_servings": {
+        "type": "integer",
+        "description": "Number of servings"
+      },
+      "ingredients": {
         "type": "array",
-        "description": "An array of recipe objects.",
+        "description": "Array of ingredient objects",
         "items": {
           "type": "object",
           "properties": {
-            "url": {
-              "type": "string",
-              "description": "The URL of the webpage."
-            },
             "name": {
               "type": "string",
-              "description": "The name of the recipe."
+              "description": "Name of the ingredient"
             },
-            "title": {
+            "amount": {
               "type": "string",
-              "description": "The title of the webpage."
-            },
-            "cook_time": {
-              "type": "string",
-              "description": "The cook time for the recipe."
-            },
-            "ingredients": {
-              "type": "array",
-              "description": "List of all ingredients required by the recipe.",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "The name of the ingredient."
-                  },
-                  "amount": {
-                    "type": "string",
-                    "description": "The amount of the ingredient."
-                  }
-                },
-                "required": [
-                  "name",
-                  "amount"
-                ],
-                "additionalProperties": false
-              }
+              "description": "Amount of the ingredient"
             }
           },
           "required": [
-            "url",
             "name",
-            "title",
-            "cook_time",
-            "ingredients"
+            "amount"
           ],
           "additionalProperties": false
         }
+      },
+      "instructions": {
+        "type": "array",
+        "description": "Ordered list of instructions as strings",
+        "items": {
+          "type": "string"
+        }
+      },
+      "nutrition_info": {
+        "$ref": "#/$defs/nutrition_info"
       }
     },
-    "additionalProperties": false
+    "required": [
+      "recipe_name",
+      "description",
+      "url",
+      "author",
+      "rating",
+      "number_of_reviews",
+      "prep_time_mins",
+      "cook_time_mins",
+      "number_of_servings",
+      "ingredients",
+      "instructions",
+      "nutrition_info"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+      "nutrition_info": {
+        "type": "object",
+        "properties": {
+          "serving_size": {
+            "type": "string",
+            "description": "Serving size description"
+          },
+          "calories": {
+            "type": "integer",
+            "description": "Calories per serving"
+          },
+          "total_fat_g": {
+            "type": "number",
+            "description": "Total fat (g)"
+          },
+          "saturated_fat_g": {
+            "type": "number",
+            "description": "Saturated fat (g)"
+          },
+          "cholesterol_mg": {
+            "type": "number",
+            "description": "Cholesterol (mg)"
+          },
+          "sodium_mg": {
+            "type": "number",
+            "description": "Sodium (mg)"
+          },
+          "carbs_g": {
+            "type": "number",
+            "description": "Carbohydrates (g)"
+          },
+          "fiber_g": {
+            "type": "number",
+            "description": "Fiber (g)"
+          },
+          "sugar_g": {
+            "type": "number",
+            "description": "Sugar (g)"
+          },
+          "protein_g": {
+            "type": "number",
+            "description": "Protein (g)"
+          }
+        },
+        "required": [
+          "serving_size",
+          "calories",
+          "total_fat_g",
+          "saturated_fat_g",
+          "cholesterol_mg",
+          "sodium_mg",
+          "carbs_g",
+          "fiber_g",
+          "sugar_g",
+          "protein_g"
+        ],
+        "additionalProperties": false
+      }
+    }
   }
 }

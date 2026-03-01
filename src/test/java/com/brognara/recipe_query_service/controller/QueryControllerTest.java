@@ -7,12 +7,6 @@ import org.mockito.Mock;
 
 class QueryControllerTest {
 
-    @Mock
-    private RequestValidatorService validatorService;
-
-    @Mock
-    private PantryService pantryService;
-
     @InjectMocks
     private QueryController queryController;
 
